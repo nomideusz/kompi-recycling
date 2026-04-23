@@ -24,12 +24,17 @@
 
     let mapEl: HTMLDivElement | undefined = $state();
     let mapInstance: google.maps.Map | undefined = $state();
-    let markers: google.maps.marker.AdvancedMarkerElement[] = [];
+    // Long-lived caches: every marker we've ever built lives here keyed by
+    // slug so we can re-add it to the clusterer in O(1) instead of allocating
+    // a new AdvancedMarkerElement + DOM on every filter change.
     const markerBySlug = new Map<
         string,
         google.maps.marker.AdvancedMarkerElement
     >();
     const pointBySlug = new Map<string, RecyclingPoint>();
+    // Slugs currently in the clusterer. Diff against the next prop to
+    // compute add/remove deltas.
+    let activeSlugs = new Set<string>();
     let clusterer: MarkerClusterer | undefined;
     let infoWindow: google.maps.InfoWindow | undefined;
     let userMarker: google.maps.marker.AdvancedMarkerElement | undefined;
@@ -334,7 +339,7 @@
         });
 
         fitToPoints();
-        renderMarkers();
+        reconcileMarkers();
     }
 
     function openPopup(
@@ -346,35 +351,64 @@
         infoWindow.open({ anchor: marker, map: mapInstance });
     }
 
-    function renderMarkers() {
+    function createMarkerFor(
+        p: RecyclingPoint,
+        selected: boolean,
+    ): google.maps.marker.AdvancedMarkerElement {
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+            position: { lat: p.lat, lng: p.lng },
+            title: `${p.name} — ${p.city}`,
+            content: buildMarkerPin(p, selected),
+            gmpClickable: true,
+        });
+        marker.addEventListener("gmp-click", () => {
+            onselect?.(p.slug);
+            selectedSlug = p.slug;
+            openPopup(p, marker);
+        });
+        return marker;
+    }
+
+    /**
+     * Reconcile the clusterer's marker set against the current `points` prop.
+     * Markers are created lazily on first sight and cached forever — subsequent
+     * filter changes only toggle clusterer membership for the slugs that
+     * actually entered or left the visible set. Avoids the 10k DOM allocation
+     * cost of the previous "clear and rebuild" path.
+     */
+    function reconcileMarkers() {
         if (!mapInstance || !clusterer) return;
-        // Tear down prior set via the clusterer (handles map removal in one call).
-        clusterer.clearMarkers();
-        markerBySlug.clear();
-        pointBySlug.clear();
 
+        const nextSlugs = new Set<string>();
+        const toAdd: google.maps.marker.AdvancedMarkerElement[] = [];
+        const toRemove: google.maps.marker.AdvancedMarkerElement[] = [];
         const currentSelected = selectedSlug;
-        const next: google.maps.marker.AdvancedMarkerElement[] = [];
-        for (const p of points) {
-            const marker = new google.maps.marker.AdvancedMarkerElement({
-                position: { lat: p.lat, lng: p.lng },
-                title: `${p.name} — ${p.city}`,
-                content: buildMarkerPin(p, p.slug === currentSelected),
-                gmpClickable: true,
-            });
-            marker.addEventListener("gmp-click", () => {
-                onselect?.(p.slug);
-                selectedSlug = p.slug;
-                openPopup(p, marker);
-            });
-            next.push(marker);
-            markerBySlug.set(p.slug, marker);
-            pointBySlug.set(p.slug, p);
-        }
-        markers = next;
-        clusterer.addMarkers(next);
 
-        if (currentSelected) {
+        for (const p of points) {
+            nextSlugs.add(p.slug);
+            pointBySlug.set(p.slug, p);
+            let marker = markerBySlug.get(p.slug);
+            if (!marker) {
+                marker = createMarkerFor(p, p.slug === currentSelected);
+                markerBySlug.set(p.slug, marker);
+            }
+            if (!activeSlugs.has(p.slug)) toAdd.push(marker);
+        }
+
+        for (const slug of activeSlugs) {
+            if (nextSlugs.has(slug)) continue;
+            const m = markerBySlug.get(slug);
+            if (m) toRemove.push(m);
+        }
+
+        // Batch the diff into a single re-cluster pass.
+        if (toRemove.length > 0) clusterer.removeMarkers(toRemove, true);
+        if (toAdd.length > 0) clusterer.addMarkers(toAdd, true);
+        if (toRemove.length > 0 || toAdd.length > 0) clusterer.render();
+
+        activeSlugs = nextSlugs;
+
+        if (currentSelected && nextSlugs.has(currentSelected)) {
             const p = pointBySlug.get(currentSelected);
             const m = markerBySlug.get(currentSelected);
             if (p && m) openPopup(p, m);
@@ -422,14 +456,14 @@
             });
     });
 
-    // Rebuild markers only when the dataset changes. `selectedSlug` read inside
-    // renderMarkers is untracked so re-selecting a point doesn't trigger a
-    // full rebuild (which was the source of the post-click lag).
+    // Reconcile clusterer membership when the visible point set changes.
+    // `selectedSlug` read inside reconcileMarkers is untracked so re-selecting
+    // a point doesn't trigger reconciliation.
     $effect(() => {
         void points;
         if (!loaded || !mapInstance) return;
         untrack(() => {
-            renderMarkers();
+            reconcileMarkers();
         });
     });
 
