@@ -1,4 +1,5 @@
 import type { SearchBoxItem } from './components/SearchBox.svelte';
+import { haversineKm, looksLikeAddress, type Anchor } from './distance';
 import type { CategoryId, RecyclingPoint, TakebackType } from './types';
 
 const PL_DIACRITICS: Record<string, string> = {
@@ -17,6 +18,8 @@ export type Filters = {
 	categories: Set<CategoryId>;
 	takebackTypes: Set<TakebackType>;
 	city: string | null;
+	anchor: Anchor | null;
+	radiusKm: number | null;
 };
 
 export function filterPoints(
@@ -24,6 +27,7 @@ export function filterPoints(
 	filters: Filters,
 ): RecyclingPoint[] {
 	const q = normalize(filters.query);
+	const proximityActive = filters.anchor && filters.radiusKm;
 	return points.filter((p) => {
 		if (filters.city && p.city !== filters.city) return false;
 		if (filters.categories.size > 0) {
@@ -39,8 +43,34 @@ export function filterPoints(
 			);
 			if (!haystack.includes(q)) return false;
 		}
+		if (proximityActive) {
+			const d = haversineKm(
+				p.lat,
+				p.lng,
+				filters.anchor!.lat,
+				filters.anchor!.lng,
+			);
+			if (d > filters.radiusKm!) return false;
+		}
 		return true;
 	});
+}
+
+/**
+ * Sort points by ascending distance from the anchor, when one is set.
+ * Returns a fresh array; original is not mutated. With no anchor, returns
+ * the input order.
+ */
+export function sortByDistance(
+	points: RecyclingPoint[],
+	anchor: Anchor | null,
+): RecyclingPoint[] {
+	if (!anchor) return points;
+	return [...points].sort(
+		(a, b) =>
+			haversineKm(a.lat, a.lng, anchor.lat, anchor.lng) -
+			haversineKm(b.lat, b.lng, anchor.lat, anchor.lng),
+	);
 }
 
 function pointWord(count: number): string {
@@ -116,6 +146,16 @@ export function buildSuggestions(
 			text: postal,
 			meta: info.city,
 			group: 'Kody pocztowe',
+		});
+	}
+
+	if (looksLikeAddress(query)) {
+		items.push({
+			key: `address:${query}`,
+			icon: 'pin',
+			text: query.trim(),
+			meta: 'Pokaż w pobliżu',
+			group: 'Adres',
 		});
 	}
 

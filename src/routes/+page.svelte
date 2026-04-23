@@ -5,7 +5,9 @@
     import SearchBox from "$lib/components/SearchBox.svelte";
     import PointList from "$lib/components/PointList.svelte";
     import Pagination from "$lib/components/Pagination.svelte";
-    import { buildSuggestions, filterPoints } from "$lib/search";
+    import ProximityPill from "$lib/components/ProximityPill.svelte";
+    import { buildSuggestions, filterPoints, sortByDistance } from "$lib/search";
+    import { geocodeAddress, type Anchor } from "$lib/distance";
     import type { CategoryId, TakebackType } from "$lib/types";
 
     let { data } = $props();
@@ -13,11 +15,16 @@
     let query = $state("");
     let categories = $state<Set<CategoryId>>(new Set());
     let takebackTypes = $state<Set<TakebackType>>(new Set());
+    let anchor = $state<Anchor | null>(null);
+    let radiusKm = $state<number | null>(null);
+    let geocoding = $state(false);
     let selectedSlug = $state<string | null>(null);
     let mapRef: RecyclingMap | undefined = $state();
     let locating = $state(false);
     let locateError = $state<string | null>(null);
     let page = $state(1);
+
+    const DEFAULT_RADIUS_KM = 10;
 
     import KompiLogo from "$lib/images/logo/logo-kompi-white.png";
 
@@ -29,15 +36,19 @@
             categories,
             takebackTypes,
             city: null,
+            anchor,
+            radiusKm,
         }),
     );
 
+    const sortedFiltered = $derived(sortByDistance(filtered, anchor));
+
     const pageCount = $derived(
-        Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)),
+        Math.max(1, Math.ceil(sortedFiltered.length / PAGE_SIZE)),
     );
 
     const pagedPoints = $derived(
-        filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+        sortedFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     );
 
     const suggestions = $derived(buildSuggestions(data.points, query));
@@ -45,7 +56,8 @@
     const showResults = $derived(
         query.trim().length > 0 ||
             categories.size > 0 ||
-            takebackTypes.size > 0,
+            takebackTypes.size > 0 ||
+            anchor !== null,
     );
 
     const cityCount = $derived(new Set(data.points.map((p) => p.city)).size);
@@ -99,7 +111,20 @@
         void query;
         void categories;
         void takebackTypes;
+        void anchor;
+        void radiusKm;
         page = 1;
+    });
+
+    // Whenever the anchor or radius changes, mirror it to the map (circle +
+    // pan). Clearing the anchor wipes the on-map circle.
+    $effect(() => {
+        if (!mapRef) return;
+        if (anchor) {
+            mapRef.setAnchor(anchor.lat, anchor.lng, radiusKm ?? null);
+        } else {
+            mapRef.clearAnchor();
+        }
     });
 
     function locateMe() {
@@ -114,6 +139,13 @@
                 locating = false;
                 const { latitude, longitude, accuracy } = pos.coords;
                 mapRef?.setUserLocation(latitude, longitude, accuracy);
+                anchor = {
+                    lat: latitude,
+                    lng: longitude,
+                    label: "Twoja lokalizacja",
+                    source: "gps",
+                };
+                if (radiusKm === null) radiusKm = DEFAULT_RADIUS_KM;
                 mapRef?.panTo(latitude, longitude, 13);
             },
             (err) => {
@@ -128,6 +160,42 @@
             },
             { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
         );
+    }
+
+    async function handleSelect(item: { key: string; text: string }) {
+        if (item.key.startsWith("address:")) {
+            const raw = item.key.slice("address:".length);
+            geocoding = true;
+            locateError = null;
+            try {
+                const result = await geocodeAddress(
+                    raw,
+                    data.googleMapsApiKey,
+                );
+                if (!result.ok) {
+                    locateError =
+                        result.reason === "not-found"
+                            ? "Nie znaleziono adresu w Polsce."
+                            : result.reason === "denied"
+                              ? "Geokoder zwrócił błąd uwierzytelnienia."
+                              : "Nie udało się ustalić lokalizacji adresu.";
+                    return;
+                }
+                anchor = result.anchor;
+                if (radiusKm === null) radiusKm = DEFAULT_RADIUS_KM;
+                query = "";
+                mapRef?.panTo(result.anchor.lat, result.anchor.lng, 13);
+            } finally {
+                geocoding = false;
+            }
+            return;
+        }
+        query = item.text;
+    }
+
+    function clearAnchor() {
+        anchor = null;
+        radiusKm = null;
     }
 </script>
 
@@ -170,7 +238,7 @@
     <div class="map-layer" aria-label="Mapa punktów zbiórki">
         <RecyclingMap
             bind:this={mapRef}
-            points={filtered}
+            points={sortedFiltered}
             apiKey={data.googleMapsApiKey}
             mapId={data.googleMapsMapId}
             bind:selectedSlug
@@ -215,9 +283,8 @@
                 <SearchBox
                     bind:query
                     results={suggestions}
-                    onselect={(item) => {
-                        query = item.text;
-                    }}
+                    loading={geocoding}
+                    onselect={handleSelect}
                 >
                     {#snippet trailing()}
                         <button
@@ -268,22 +335,32 @@
                 </SearchBox>
             </div>
 
+            {#if anchor}
+                <div class="proximity-island">
+                    <ProximityPill
+                        {anchor}
+                        bind:radiusKm
+                        onclear={clearAnchor}
+                    />
+                </div>
+            {/if}
+
             {#if showResults}
                 <div class="results-island" aria-label="Wyniki">
                     <div class="results-head">
                         <div class="results-head-line">
                             <strong
-                                >{filtered.length.toLocaleString(
+                                >{sortedFiltered.length.toLocaleString(
                                     "pl-PL",
                                 )}</strong
                             >
                             <span class="results-noun">
-                                {filtered.length === 1
+                                {sortedFiltered.length === 1
                                     ? "wynik"
-                                    : filtered.length % 10 >= 2 &&
-                                        filtered.length % 10 <= 4 &&
-                                        (filtered.length % 100 < 12 ||
-                                            filtered.length % 100 > 14)
+                                    : sortedFiltered.length % 10 >= 2 &&
+                                        sortedFiltered.length % 10 <= 4 &&
+                                        (sortedFiltered.length % 100 < 12 ||
+                                            sortedFiltered.length % 100 > 14)
                                       ? "wyniki"
                                       : "wyników"}
                             </span>
@@ -293,13 +370,15 @@
                                 >
                             {/if}
                         </div>
-                        {#if categories.size > 0 || takebackTypes.size > 0}
+                        {#if categories.size > 0 || takebackTypes.size > 0 || anchor !== null}
                             <button
                                 type="button"
                                 class="results-clear"
                                 onclick={() => {
                                     categories = new Set();
                                     takebackTypes = new Set();
+                                    anchor = null;
+                                    radiusKm = null;
                                 }}
                                 aria-label="Wyczyść filtry"
                             >
@@ -317,7 +396,7 @@
                     <Pagination
                         bind:page
                         {pageCount}
-                        total={filtered.length}
+                        total={sortedFiltered.length}
                         pageSize={PAGE_SIZE}
                     />
                 </div>
@@ -523,6 +602,13 @@
        Chips carry their own translucent background. */
     .takeback-island {
         pointer-events: auto;
+        padding: 0 4px;
+    }
+
+    /* Proximity pill — appears under the search box once an anchor is set. */
+    .proximity-island {
+        pointer-events: auto;
+        display: flex;
         padding: 0 4px;
     }
 

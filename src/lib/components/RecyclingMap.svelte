@@ -34,6 +34,7 @@
     let infoWindow: google.maps.InfoWindow | undefined;
     let userMarker: google.maps.marker.AdvancedMarkerElement | undefined;
     let userAccuracyCircle: google.maps.Circle | undefined;
+    let anchorCircle: google.maps.Circle | undefined;
     let loaded = $state(false);
     let error = $state(false);
     let initialized = false;
@@ -448,6 +449,38 @@
         if (!mapInstance) return;
         mapInstance.panTo({ lat, lng });
         if (mapInstance.getZoom()! < zoom) mapInstance.setZoom(zoom);
+    }
+
+    export function setAnchor(lat: number, lng: number, radiusKm: number | null) {
+        if (!mapInstance) return;
+        if (radiusKm == null) {
+            anchorCircle?.setMap(null);
+            anchorCircle = undefined;
+            return;
+        }
+        const radiusMeters = radiusKm * 1000;
+        if (!anchorCircle) {
+            anchorCircle = new google.maps.Circle({
+                map: mapInstance,
+                center: { lat, lng },
+                radius: radiusMeters,
+                fillColor: "#39ff14",
+                fillOpacity: 0.06,
+                strokeColor: "#39ff14",
+                strokeOpacity: 0.5,
+                strokeWeight: 1.5,
+                clickable: false,
+            });
+        } else {
+            anchorCircle.setCenter({ lat, lng });
+            anchorCircle.setRadius(radiusMeters);
+            anchorCircle.setMap(mapInstance);
+        }
+    }
+
+    export function clearAnchor() {
+        anchorCircle?.setMap(null);
+        anchorCircle = undefined;
     }
 
     export function setUserLocation(
