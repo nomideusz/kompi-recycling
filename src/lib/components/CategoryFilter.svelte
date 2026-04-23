@@ -42,47 +42,64 @@
   .filters {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--kompi-space-2);
+    gap: 8px;
   }
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 14px;
-    background: var(--kompi-surface);
-    border: 1px solid var(--kompi-border);
-    border-radius: var(--kompi-radius-pill);
+    gap: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
     color: var(--kompi-text-2);
-    font-size: var(--kompi-text-sm);
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    transition: all var(--kompi-dur-fast) var(--kompi-ease);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    cursor: pointer;
   }
   .chip:hover {
     border-color: var(--chip-color);
     color: var(--kompi-text);
-    background: var(--kompi-surface);
+    background: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
   .chip.on {
     background: var(--chip-color);
     border-color: var(--chip-color);
     color: white;
-    padding-right: 10px;
-    box-shadow: var(--kompi-shadow-sm);
+    padding-right: 14px;
+    box-shadow: 0 4px 16px var(--chip-color);
+    transform: translateY(-1px);
+  }
+  .chip.on:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px var(--chip-color);
   }
   .chip.on .dot {
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
   }
   .dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--chip-color);
-    transition: background var(--kompi-dur-fast) var(--kompi-ease);
+    transition: all 0.2s var(--kompi-ease);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   }
   .check {
     color: white;
+    animation: check-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes check-in {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
   }
   .label {
     line-height: 1;

@@ -64,55 +64,63 @@
 <style>
   .card {
     display: block;
-    padding: var(--kompi-space-4);
-    background: var(--kompi-surface);
-    border: 1px solid var(--kompi-border);
-    border-radius: var(--kompi-radius);
-    transition: border-color var(--kompi-dur-fast) var(--kompi-ease),
-                box-shadow var(--kompi-dur-fast) var(--kompi-ease),
-                transform var(--kompi-dur-fast) var(--kompi-ease);
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
     text-align: left;
     position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   }
   .card:hover,
   .card:focus-visible {
-    border-color: var(--kompi-border-strong);
-    box-shadow: var(--kompi-shadow-sm);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(31, 122, 79, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px) scale(1.01);
     outline: none;
+    z-index: 1;
   }
   .card.selected {
+    background: #ffffff;
     border-color: var(--kompi-accent);
     box-shadow:
       0 0 0 1px var(--kompi-accent),
-      0 2px 8px rgba(31, 122, 79, 0.12);
+      0 8px 32px rgba(31, 122, 79, 0.15);
+    transform: scale(1.02);
+    z-index: 2;
   }
   .card.selected::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 10%;
-    bottom: 10%;
-    width: 3px;
-    background: var(--kompi-accent);
-    border-radius: 0 2px 2px 0;
+    top: 16px;
+    bottom: 16px;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--kompi-accent-hover), var(--kompi-accent));
+    border-radius: 0 4px 4px 0;
   }
   .card-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: var(--kompi-space-3);
-    margin-bottom: var(--kompi-space-2);
+    gap: 12px;
+    margin-bottom: 8px;
   }
   h3 {
     margin: 0;
-    font-size: var(--kompi-text-md);
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.3;
   }
   h3 a {
     color: var(--kompi-text);
+    transition: color 0.2s ease;
   }
   h3 a:hover {
     color: var(--kompi-accent);
@@ -123,17 +131,20 @@
     color: var(--kompi-text-3);
     flex-shrink: 0;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 500;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    background: rgba(0,0,0,0.03);
+    padding: 2px 6px;
+    border-radius: 6px;
   }
   .addr,
   .hours {
     margin: 0 0 6px;
-    font-size: var(--kompi-text-sm);
+    font-size: 13px;
     color: var(--kompi-text-2);
     display: flex;
     align-items: flex-start;
-    gap: 6px;
+    gap: 8px;
   }
   .addr .i,
   .hours .i {
@@ -143,17 +154,22 @@
   }
   .postal {
     font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
   .hours {
     color: var(--kompi-text-3);
     font-family: var(--kompi-font-mono);
-    font-size: var(--kompi-text-xs);
-    margin-bottom: var(--kompi-space-3);
+    font-size: 12px;
+    margin-bottom: 12px;
+    background: rgba(0,0,0,0.02);
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex;
   }
   .cats {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -162,18 +178,24 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 3px 9px;
+    padding: 4px 10px;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--kompi-text-2);
-    background: var(--kompi-bg);
-    border-radius: var(--kompi-radius-pill);
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 20px;
     letter-spacing: -0.005em;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .card:hover .cats li {
+    border-color: rgba(0,0,0,0.08);
   }
   .dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--chip-color);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 </style>
