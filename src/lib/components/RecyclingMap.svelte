@@ -14,12 +14,19 @@
         mapId = "",
         selectedSlug = $bindable<string | null>(null),
         onselect,
+        onbounds,
     }: {
         points: RecyclingPoint[];
         apiKey: string;
         mapId?: string;
         selectedSlug?: string | null;
         onselect?: (slug: string) => void;
+        onbounds?: (bounds: {
+            north: number;
+            south: number;
+            east: number;
+            west: number;
+        }) => void;
     } = $props();
 
     let mapEl: HTMLDivElement | undefined = $state();
@@ -337,6 +344,23 @@
             renderer: clusterRenderer(),
             algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16 }),
         });
+
+        // The idle event fires after pan/zoom settles — no debounce needed
+        // on top. Parent uses these bounds to drive bbox-fetching.
+        if (onbounds) {
+            mapInstance.addListener("idle", () => {
+                const b = mapInstance!.getBounds();
+                if (!b) return;
+                const ne = b.getNorthEast();
+                const sw = b.getSouthWest();
+                onbounds({
+                    north: ne.lat(),
+                    south: sw.lat(),
+                    east: ne.lng(),
+                    west: sw.lng(),
+                });
+            });
+        }
 
         fitToPoints();
         reconcileMarkers();

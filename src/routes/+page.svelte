@@ -15,9 +15,27 @@
     } from "$lib/search";
     import { geocodeAddress, type Anchor } from "$lib/distance";
     import { fromWire } from "$lib/wire";
+    import { PointStore, type Bbox } from "$lib/pointStore.svelte";
     import type { CategoryId, TakebackType } from "$lib/types";
 
     let { data } = $props();
+
+    // Initial bbox the SSR payload was filtered against — so the store
+    // doesn't refetch the country view on first idle.
+    const POLAND_BBOX: Bbox = {
+        north: 55.5,
+        south: 49.0,
+        east: 24.5,
+        west: 14.0,
+    };
+
+    const store = new PointStore();
+    store.seed(
+        data.initialPoints.map(fromWire),
+        data.totalCount,
+        POLAND_BBOX,
+        data.initialTruncated,
+    );
 
     let query = $state("");
     let categories = $state<Set<CategoryId>>(new Set());
@@ -37,13 +55,12 @@
 
     const PAGE_SIZE = 50;
 
-    // Server ships a slim `WirePoint[]` (empty strings omitted); rehydrate
-    // back to RecyclingPoint shape once. Reruns only when data.points
-    // identity changes — basically just on initial load.
-    const points = $derived(data.points.map(fromWire));
+    // Loaded subset (may grow as the user pans/zooms). The store dedups by
+    // slug so the array only updates when truly new points come in.
+    const points = $derived(store.points);
 
-    // Recomputed only when points actually changes (basically once on
-    // load) — avoids redoing 6k+ string normalizations per keystroke.
+    // Recomputed when the loaded set changes — typically a few times per
+    // session as the user explores, not per keystroke.
     const haystackIndex = $derived(buildHaystackIndex(points));
 
     // Recomputed only when the anchor changes — avoids recomputing haversine
@@ -77,7 +94,9 @@
         sortedFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     );
 
-    const suggestions = $derived(buildSuggestions(points, query));
+    const suggestions = $derived(
+        buildSuggestions(points, query, data.cityAggregates),
+    );
 
     const showResults = $derived(
         query.trim().length > 0 ||
@@ -86,7 +105,8 @@
             anchor !== null,
     );
 
-    const cityCount = $derived(new Set(points.map((p) => p.city)).size);
+    const totalCount = $derived(data.totalCount);
+    const cityCount = $derived(data.cityAggregates.length);
 
     const jsonLd = $derived([
         {
@@ -128,7 +148,7 @@
                 '@type': 'Audience',
                 audienceType: 'Mieszkańcy Polski oddający elektroodpady',
             },
-            description: `Katalog ${points.length.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
+            description: `Katalog ${totalCount.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
         },
     ]);
 
@@ -188,7 +208,24 @@
         );
     }
 
+    function handleBounds(b: Bbox) {
+        store.fetchBbox(b);
+    }
+
     async function handleSelect(item: { key: string; text: string }) {
+        if (item.key.startsWith("city:")) {
+            const cityName = item.key.slice("city:".length);
+            const agg = data.cityAggregates.find((c) => c.city === cityName);
+            if (agg) {
+                // Pan to the city centroid; the map's idle event will trigger
+                // a bbox fetch so the points for that city stream in.
+                mapRef?.panTo(agg.lat, agg.lng, 12);
+                query = "";
+            } else {
+                query = cityName;
+            }
+            return;
+        }
         if (item.key.startsWith("address:")) {
             const raw = item.key.slice("address:".length);
             geocoding = true;
@@ -268,8 +305,18 @@
             apiKey={data.googleMapsApiKey}
             mapId={data.googleMapsMapId}
             bind:selectedSlug
+            onbounds={handleBounds}
         />
     </div>
+
+    {#if store.truncated}
+        <div class="truncation-hint" role="status">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/>
+            </svg>
+            <span>Przybliż, aby zobaczyć wszystkie punkty w tym obszarze</span>
+        </div>
+    {/if}
 
     <div class="controls" aria-label="Wyszukaj punkt zbiórki">
         <div class="left-col">
@@ -636,6 +683,35 @@
         pointer-events: auto;
         display: flex;
         padding: 0 4px;
+    }
+
+    /* Floating hint when the current viewport hit the server-side bbox cap.
+       Tells the user that what they see isn't the full set, without blocking
+       interaction. */
+    .truncation-hint {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 11;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: rgba(24, 24, 27, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        color: var(--kompi-text-2);
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+    }
+    .truncation-hint svg {
+        color: var(--kompi-warning);
+        flex-shrink: 0;
     }
 
     .results-island {

@@ -2,6 +2,13 @@ import type { SearchBoxItem } from './components/SearchBox.svelte';
 import { haversineKm, looksLikeAddress, type Anchor } from './distance';
 import type { CategoryId, RecyclingPoint, TakebackType } from './types';
 
+export type CityAggregate = {
+	city: string;
+	lat: number;
+	lng: number;
+	count: number;
+};
+
 const DIACRITIC_RE = /\p{Diacritic}/gu;
 const WHITESPACE_RE = /\s+/g;
 const POLISH_L = /ł/g;
@@ -137,21 +144,18 @@ function pointWord(count: number): string {
 export function buildSuggestions(
 	points: RecyclingPoint[],
 	query: string,
+	cityAggregates: CityAggregate[],
 	perGroupLimit = 6,
 ): SearchBoxItem[] {
 	const q = normalize(query);
 	if (q.length < 2) return [];
 
-	const cities = new Map<string, number>();
 	const operators = new Map<string, number>();
 	const postals = new Map<string, { city: string; count: number }>();
 
 	const hasDigit = /\d/.test(q);
 	const qDigits = q.replace(/[-\s]/g, '');
 
-	// Cities and operators have lots of duplicates (888 cities for 6k+ points).
-	// Memoize normalized values by raw value so each distinct string gets
-	// normalized at most once per call instead of once per row.
 	const normCache = new Map<string, string>();
 	const normMaybe = (s: string): string => {
 		if (!s) return '';
@@ -162,15 +166,23 @@ export function buildSuggestions(
 		return out;
 	};
 
-	for (const p of points) {
-		if (normMaybe(p.city).includes(q)) {
-			cities.set(p.city, (cities.get(p.city) ?? 0) + 1);
+	// City matches come from the precomputed aggregates so the user can find
+	// any Polish city even when its points haven't been fetched into the
+	// loaded subset yet.
+	const cityMatches: Array<{ city: CityAggregate; count: number }> = [];
+	for (const c of cityAggregates) {
+		if (normMaybe(c.city).includes(q)) {
+			cityMatches.push({ city: c, count: c.count });
 		}
-		if (normMaybe(p.operator).includes(q)) {
+	}
+	cityMatches.sort((a, b) => b.count - a.count);
+
+	for (const p of points) {
+		if (p.operator && normMaybe(p.operator).includes(q)) {
 			operators.set(p.operator, (operators.get(p.operator) ?? 0) + 1);
 		}
 		if (hasDigit) {
-			const postalDigits = p.postalCode.replace(/[-\s]/g, '');
+			const postalDigits = (p.postalCode || '').replace(/[-\s]/g, '');
 			if (postalDigits.includes(qDigits)) {
 				const existing = postals.get(p.postalCode);
 				postals.set(p.postalCode, {
@@ -183,13 +195,11 @@ export function buildSuggestions(
 
 	const items: SearchBoxItem[] = [];
 
-	for (const [city, count] of [...cities.entries()]
-		.sort((a, b) => b[1] - a[1])
-		.slice(0, perGroupLimit)) {
+	for (const { city, count } of cityMatches.slice(0, perGroupLimit)) {
 		items.push({
-			key: `city:${city}`,
+			key: `city:${city.city}`,
 			icon: 'city',
-			text: city,
+			text: city.city,
 			meta: `${count} ${pointWord(count)}`,
 			group: 'Miasta',
 		});
