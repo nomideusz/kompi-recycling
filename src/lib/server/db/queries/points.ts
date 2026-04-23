@@ -86,18 +86,32 @@ export type BboxResult = {
 
 /** Filter the cached points by bbox. Caps result at `limit`; reports both
  * the capped count and the unbounded total so the client can decide whether
- * to nudge the user to zoom in. */
+ * to nudge the user to zoom in.
+ *
+ * When matches exceed the limit, stride-samples evenly through the matching
+ * set instead of taking the first N. The DB cache is in tier-insertion
+ * order (PSZOK + retail first, the 21k Tier-4 grocery battery bins last),
+ * so a first-N sample at country zoom would massively under-represent
+ * free_dropbox (~7 instead of the ~830 expected at 83% share). Stride
+ * sampling restores the underlying takeback_type / category distribution
+ * deterministically. */
 export async function getPointsInBbox(bbox: Bbox, limit: number): Promise<BboxResult> {
   const all = await getAllPoints();
-  const out: RecyclingPoint[] = [];
-  let total = 0;
+  const matching: RecyclingPoint[] = [];
   for (const p of all) {
     if (p.lat <= bbox.north && p.lat >= bbox.south && p.lng <= bbox.east && p.lng >= bbox.west) {
-      total++;
-      if (out.length < limit) out.push(p);
+      matching.push(p);
     }
   }
-  return { points: out, truncated: total > out.length, total };
+  if (matching.length <= limit) {
+    return { points: matching, truncated: false, total: matching.length };
+  }
+  const stride = matching.length / limit;
+  const out: RecyclingPoint[] = new Array(limit);
+  for (let i = 0; i < limit; i++) {
+    out[i] = matching[Math.floor(i * stride)];
+  }
+  return { points: out, truncated: true, total: matching.length };
 }
 
 export type CityAggregate = {
