@@ -260,10 +260,10 @@
 
   /* Glassmorphism utility for islands */
   .island-glass {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
@@ -275,10 +275,10 @@
     justify-content: space-between;
     gap: var(--kompi-space-3);
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: transform 0.2s var(--kompi-ease), box-shadow 0.2s var(--kompi-ease);
@@ -357,10 +357,10 @@
 
   .search-island {
     pointer-events: auto;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: transform 0.2s var(--kompi-ease), box-shadow 0.2s var(--kompi-ease);
@@ -376,10 +376,10 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     overflow: hidden;
@@ -397,8 +397,8 @@
     flex-shrink: 0;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.9),
-      rgba(244, 246, 245, 0.6)
+      rgba(24, 24, 27, 0.9),
+      rgba(18, 18, 23, 0.6)
     );
   }
   .results-head-line {
@@ -495,8 +495,8 @@
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -544,10 +544,10 @@
     z-index: 11;
     max-width: 400px;
     padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(24, 24, 27, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-left: 4px solid var(--kompi-danger);
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);

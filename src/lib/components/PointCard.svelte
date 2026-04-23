@@ -65,7 +65,7 @@
   .card {
     display: block;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(24, 24, 27, 0.7);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -78,7 +78,7 @@
   }
   .card:hover,
   .card:focus-visible {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(34, 34, 38, 0.95);
     border-color: rgba(31, 122, 79, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
     transform: translateY(-2px) scale(1.01);
@@ -86,7 +86,7 @@
     z-index: 1;
   }
   .card.selected {
-    background: #ffffff;
+    background: var(--kompi-surface-raised);
     border-color: var(--kompi-accent);
     box-shadow:
       0 0 0 1px var(--kompi-accent),
@@ -182,7 +182,7 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--kompi-text-2);
-    background: rgba(255,255,255,0.8);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0,0,0,0.05);
     border-radius: 20px;
     letter-spacing: -0.005em;

@@ -49,7 +49,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(24, 24, 27, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(0, 0, 0, 0.06);
@@ -65,7 +65,7 @@
   .chip:hover {
     border-color: var(--chip-color);
     color: var(--kompi-text);
-    background: #ffffff;
+    background: rgba(34, 34, 38, 0.95);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
@@ -82,7 +82,7 @@
     box-shadow: 0 2px 8px var(--chip-color);
   }
   .chip.on .dot {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(24, 24, 27, 0.95);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
   }
   .dot {
