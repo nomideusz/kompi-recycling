@@ -14,7 +14,7 @@
         sortByDistance,
     } from "$lib/search";
     import { geocodeAddress, type Anchor } from "$lib/distance";
-    import { fromWire } from "$lib/wire";
+    import { cityAggFromWire, fromWire } from "$lib/wire";
     import { PointStore, type Bbox } from "$lib/pointStore.svelte";
     import type { CategoryId, TakebackType } from "$lib/types";
 
@@ -94,8 +94,12 @@
         sortedFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     );
 
+    // Server ships city aggregates as compact tuples — rehydrate once into
+    // the object form buildSuggestions expects. Reruns only on data change.
+    const cityAggregates = $derived(data.cityAggregates.map(cityAggFromWire));
+
     const suggestions = $derived(
-        buildSuggestions(points, query, data.cityAggregates),
+        buildSuggestions(points, query, cityAggregates),
     );
 
     const showResults = $derived(
@@ -106,7 +110,7 @@
     );
 
     const totalCount = $derived(data.totalCount);
-    const cityCount = $derived(data.cityAggregates.length);
+    const cityCount = $derived(cityAggregates.length);
 
     const jsonLd = $derived([
         {
@@ -215,7 +219,7 @@
     async function handleSelect(item: { key: string; text: string }) {
         if (item.key.startsWith("city:")) {
             const cityName = item.key.slice("city:".length);
-            const agg = data.cityAggregates.find((c) => c.city === cityName);
+            const agg = cityAggregates.find((c) => c.city === cityName);
             if (agg) {
                 // Pan to the city centroid; the map's idle event will trigger
                 // a bbox fetch so the points for that city stream in.

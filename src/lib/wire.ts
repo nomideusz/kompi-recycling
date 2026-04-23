@@ -45,6 +45,28 @@ export function toWire(p: RecyclingPoint): WirePoint {
 	return w;
 }
 
+/**
+ * Compact tuple form for city aggregates: `[name, lat, lng, count]`.
+ * Saves ~70% of bytes vs the object form once you account for repeated
+ * `"city"`/`"lat"`/etc keys; meaningful at thousands of entries.
+ */
+export type CityAggWire = readonly [string, number, number, number];
+
+export type CityAgg = {
+	city: string;
+	lat: number;
+	lng: number;
+	count: number;
+};
+
+export function cityAggToWire(a: CityAgg): CityAggWire {
+	return [a.city, a.lat, a.lng, a.count];
+}
+
+export function cityAggFromWire(w: CityAggWire): CityAgg {
+	return { city: w[0], lat: w[1], lng: w[2], count: w[3] };
+}
+
 export function fromWire(w: WirePoint): RecyclingPoint {
 	return {
 		slug: w.slug,
