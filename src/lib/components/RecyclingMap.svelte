@@ -5,6 +5,7 @@
         SuperClusterAlgorithm,
     } from "@googlemaps/markerclusterer";
     import { CATEGORIES_BY_ID } from "$lib/categories";
+    import { TAKEBACKS_BY_ID } from "$lib/takebacks";
     import type { RecyclingPoint } from "$lib/types";
 
     let {
@@ -113,6 +114,10 @@
                 return `<span class="kp-chip"><span class="kp-dot" style="background: var(${cat.colorVar})"></span>${escapeHtml(cat.label)}</span>`;
             })
             .join("");
+        const tb = TAKEBACKS_BY_ID[p.takebackType];
+        const takeback = tb
+            ? `<div class="kp-takeback" title="${escapeHtml(tb.description)}"><span class="kp-tb-dot" style="background: var(--kompi-tb-${tb.id})"></span>${escapeHtml(tb.label)}</div>`
+            : "";
         const hours = p.hours
             ? `<div class="kp-row kp-hours">${escapeHtml(p.hours)}</div>`
             : "";
@@ -124,6 +129,7 @@
         <div class="kp-title">${escapeHtml(p.name)}</div>
         <div class="kp-op">${escapeHtml(p.operator || "")}</div>
         <div class="kp-addr">${escapeHtml(p.address)}, ${escapeHtml(p.postalCode)} ${escapeHtml(p.city)}</div>
+        ${takeback}
         ${hours}
         <div class="kp-chips">${chips}</div>
         ${notes}
@@ -671,6 +677,23 @@
         font-size: 12px;
         color: var(--kompi-text-3);
         margin-bottom: 8px;
+    }
+    :global(.kp-pop .kp-takeback) {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 8px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--kompi-text);
+        background: var(--kompi-bg);
+        border-radius: var(--kompi-radius-pill);
+    }
+    :global(.kp-pop .kp-tb-dot) {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
     }
     :global(.kp-pop .kp-chips) {
         display: flex;

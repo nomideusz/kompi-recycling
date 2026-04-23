@@ -19,6 +19,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 52.1625,
 		lng: 21.0512,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 10:00–18:00, Sb 8:00–14:00',
 		phone: '+48 22 555 00 00',
 		notes: 'Wymagany dokument potwierdzający zamieszkanie w Warszawie.',
@@ -33,6 +34,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 52.2612,
 		lng: 20.9205,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 10:00–18:00, Sb 8:00–14:00',
 	},
 	{
@@ -45,6 +47,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 49.9835,
 		lng: 20.0412,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Sb 7:00–17:00',
 	},
 	{
@@ -57,6 +60,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 50.0440,
 		lng: 20.0180,
 		categories: ['weee', 'small', 'battery'],
+		takebackType: 'municipal',
 		hours: 'Pn–Sb 7:00–17:00',
 	},
 	{
@@ -69,6 +73,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 54.3682,
 		lng: 18.5912,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 10:00–18:00, Sb 10:00–14:00',
 	},
 	{
@@ -81,6 +86,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 51.1053,
 		lng: 16.9948,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 9:00–17:00, Sb 9:00–15:00',
 	},
 	{
@@ -93,6 +99,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 52.4033,
 		lng: 17.0012,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 8:00–18:00, Sb 8:00–14:00',
 	},
 	{
@@ -105,6 +112,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 52.1488,
 		lng: 21.0466,
 		categories: ['mobile', 'small', 'battery'],
+		takebackType: 'mobile_event',
 		hours: 'Pierwsza sobota miesiąca, 10:00–14:00',
 		notes: 'Tylko drobny sprzęt i baterie — duże AGD do PSZOK.',
 	},
@@ -118,6 +126,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 51.7962,
 		lng: 19.4023,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 8:00–18:00, Sb 9:00–15:00',
 	},
 	{
@@ -130,6 +139,7 @@ export const POINTS: RecyclingPoint[] = [
 		lat: 50.2712,
 		lng: 19.0632,
 		categories: ['weee', 'small', 'battery', 'lamp'],
+		takebackType: 'municipal',
 		hours: 'Pn–Pt 10:00–18:00, Sb 9:00–14:00',
 	},
 ];

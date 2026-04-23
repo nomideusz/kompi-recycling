@@ -1,7 +1,20 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../index';
 import { recyclingPoints, type RecyclingPointRow } from '../schema';
-import type { RecyclingPoint, CategoryId } from '$lib/types';
+import type { RecyclingPoint, CategoryId, TakebackType } from '$lib/types';
+
+const TAKEBACK_TYPES: ReadonlySet<TakebackType> = new Set([
+  'free_dropbox',
+  'purchase_required',
+  'municipal',
+  'mobile_event',
+]);
+
+function parseTakebackType(raw: string | null | undefined): TakebackType {
+  return raw && TAKEBACK_TYPES.has(raw as TakebackType)
+    ? (raw as TakebackType)
+    : 'municipal';
+}
 
 function parseCategories(raw: string | null): CategoryId[] {
   if (!raw) return [];
@@ -24,6 +37,7 @@ function toPoint(r: RecyclingPointRow): RecyclingPoint {
     lat: r.lat,
     lng: r.lng,
     categories: parseCategories(r.categoriesJson),
+    takebackType: parseTakebackType(r.takebackType),
     hours: r.hours ?? '',
     phone: r.phone ?? undefined,
     website: r.website ?? undefined,

@@ -72,6 +72,12 @@
     --kompi-cat-small: #bf00ff; /* Electric Purple */
     --kompi-cat-mobile: #ffaa00; /* Neon Orange */
 
+    /* Take-back-mode hues — muted on purpose, secondary to category colors */
+    --kompi-tb-free_dropbox: #4ade80;       /* mint green: no friction */
+    --kompi-tb-purchase_required: #f59e0b;  /* amber: requires purchase */
+    --kompi-tb-municipal: #60a5fa;          /* blue: institutional */
+    --kompi-tb-mobile_event: #c084fc;       /* lavender: scheduled event */
+
     /* ── Layout ───────────────────────── */
     --kompi-container: 1200px;
     --kompi-gutter: clamp(16px, 4vw, 48px);

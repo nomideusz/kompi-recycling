@@ -27,6 +27,13 @@ export const recyclingPoints = sqliteTable(
     // Provenance — 'google-places' | 'manual' | 'bdo' | future sources
     source: text('source').notNull().default('manual'),
 
+    // What kind of take-back channel this is, from a consumer's perspective.
+    // free_dropbox     — drop electronics in a bin, no purchase needed
+    // purchase_required — retail 1:1 take-back, you must buy a replacement
+    // municipal        — PSZOK / municipal recycling centre
+    // mobile_event     — scheduled mobile/objazdowe collection
+    takebackType: text('takeback_type').notNull().default('municipal'),
+
     lastSeen: text('last_seen').default(sql`(CURRENT_TIMESTAMP)`),
     createdAt: text('created_at').default(sql`(CURRENT_TIMESTAMP)`),
   },

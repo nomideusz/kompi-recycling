@@ -5,6 +5,12 @@ export type CategoryId =
 	| 'small'
 	| 'mobile';
 
+export type TakebackType =
+	| 'free_dropbox'
+	| 'purchase_required'
+	| 'municipal'
+	| 'mobile_event';
+
 export type Category = {
 	id: CategoryId;
 	/** Polish label shown in UI */
@@ -13,6 +19,14 @@ export type Category = {
 	description: string;
 	/** CSS color variable name (defined in app.css) */
 	colorVar: string;
+};
+
+export type Takeback = {
+	id: TakebackType;
+	/** Polish label shown in UI */
+	label: string;
+	/** One-line consumer-facing explanation */
+	description: string;
 };
 
 export type RecyclingPoint = {
@@ -28,6 +42,8 @@ export type RecyclingPoint = {
 	lng: number;
 	/** What the point accepts */
 	categories: CategoryId[];
+	/** How the take-back works from a user's perspective */
+	takebackType: TakebackType;
 	/** Opening hours, free-form string or weekly schedule — free-form for now */
 	hours: string;
 	phone?: string;

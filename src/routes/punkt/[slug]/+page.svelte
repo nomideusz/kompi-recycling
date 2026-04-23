@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CATEGORIES_BY_ID } from '$lib/categories';
+  import { TAKEBACKS_BY_ID } from '$lib/takebacks';
 
   let { data } = $props();
   const p = $derived(data.point);
@@ -22,37 +23,77 @@
       .join(', '),
   );
 
-  const jsonLd = $derived({
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: p.name,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: p.address,
-      addressLocality: p.city,
-      postalCode: p.postalCode,
-      addressCountry: 'PL',
+  const jsonLd = $derived([
+    {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      '@id': `${canonicalUrl}#place`,
+      name: p.name,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: p.address,
+        addressLocality: p.city,
+        postalCode: p.postalCode,
+        addressCountry: 'PL',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: p.lat,
+        longitude: p.lng,
+      },
+      telephone: p.phone ?? undefined,
+      url: p.website ?? canonicalUrl,
+      openingHours: p.hours || undefined,
+      description,
+      areaServed: { '@type': 'City', name: p.city },
+      image: 'https://recycling.kompi.pl/og-image.svg',
+      sameAs: p.website ? [p.website] : undefined,
     },
-    geo: {
-      '@type': 'GeoCoordinates',
-      latitude: p.lat,
-      longitude: p.lng,
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Mapa punktów zbiórki',
+          item: 'https://recycling.kompi.pl/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: p.city,
+          item: `https://recycling.kompi.pl/?q=${encodeURIComponent(p.city)}`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: p.name,
+          item: canonicalUrl,
+        },
+      ],
     },
-    telephone: p.phone ?? undefined,
-    url: p.website ?? canonicalUrl,
-    openingHours: p.hours || undefined,
-    description,
-  });
+  ]);
 </script>
 
 <svelte:head>
   <title>{p.name} — {p.city} — recycling.kompi.pl</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonicalUrl} />
+  <link rel="alternate" hreflang="pl-PL" href={canonicalUrl} />
+  <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
   <meta property="og:title" content="{p.name} — {p.city}" />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonicalUrl} />
   <meta property="og:type" content="place" />
+  <meta property="place:location:latitude" content={String(p.lat)} />
+  <meta property="place:location:longitude" content={String(p.lng)} />
+  <meta name="geo.region" content="PL" />
+  <meta name="geo.placename" content={p.city} />
+  <meta name="geo.position" content="{p.lat};{p.lng}" />
+  <meta name="ICBM" content="{p.lat}, {p.lng}" />
+  <meta name="twitter:title" content="{p.name} — {p.city}" />
+  <meta name="twitter:description" content={description} />
   {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
 
@@ -108,6 +149,14 @@
         {p.city}
       </span>
     </div>
+    {#if TAKEBACKS_BY_ID[p.takebackType]}
+      {@const tb = TAKEBACKS_BY_ID[p.takebackType]}
+      <p class="takeback" style="--tb-color: var(--kompi-tb-{tb.id});">
+        <span class="tb-dot" aria-hidden="true"></span>
+        <strong>{tb.label}</strong>
+        <span class="tb-desc">— {tb.description}</span>
+      </p>
+    {/if}
   </header>
 
   <div class="actions">
@@ -305,6 +354,32 @@
   }
   .meta-item svg {
     color: var(--kompi-text-4);
+  }
+  .takeback {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: var(--kompi-space-3) 0 0;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--tb-color) 12%, var(--kompi-surface));
+    border: 1px solid color-mix(in srgb, var(--tb-color) 35%, transparent);
+    border-radius: var(--kompi-radius);
+    font-size: var(--kompi-text-sm);
+    color: var(--kompi-text-2);
+  }
+  .takeback strong {
+    color: var(--kompi-text);
+    font-weight: 600;
+  }
+  .tb-desc {
+    color: var(--kompi-text-3);
+  }
+  .tb-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tb-color);
+    box-shadow: 0 0 6px var(--tb-color);
   }
 
   .actions {

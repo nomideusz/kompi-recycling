@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CATEGORIES_BY_ID } from '$lib/categories';
+  import { TAKEBACKS_BY_ID } from '$lib/takebacks';
   import type { RecyclingPoint } from '$lib/types';
 
   let {
@@ -29,6 +30,18 @@
       <span class="operator">{point.operator}</span>
     {/if}
   </div>
+
+  {#if TAKEBACKS_BY_ID[point.takebackType]}
+    {@const tb = TAKEBACKS_BY_ID[point.takebackType]}
+    <span
+      class="takeback"
+      style="--tb-color: var(--kompi-tb-{tb.id});"
+      title={tb.description}
+    >
+      <span class="tb-dot" aria-hidden="true"></span>
+      {tb.label}
+    </span>
+  {/if}
 
   <p class="addr">
     <svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -110,6 +123,26 @@
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 8px;
+  }
+  .takeback {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--kompi-text-2);
+    background: color-mix(in srgb, var(--tb-color) 14%, rgba(24, 24, 27, 0.4));
+    border: 1px solid color-mix(in srgb, var(--tb-color) 35%, transparent);
+    border-radius: 6px;
+  }
+  .tb-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tb-color);
+    box-shadow: 0 0 4px var(--tb-color);
   }
   h3 {
     margin: 0;

@@ -1,16 +1,18 @@
 <script lang="ts">
     import RecyclingMap from "$lib/components/RecyclingMap.svelte";
     import CategoryFilter from "$lib/components/CategoryFilter.svelte";
+    import TakebackFilter from "$lib/components/TakebackFilter.svelte";
     import SearchBox from "$lib/components/SearchBox.svelte";
     import PointList from "$lib/components/PointList.svelte";
     import Pagination from "$lib/components/Pagination.svelte";
     import { buildSuggestions, filterPoints } from "$lib/search";
-    import type { CategoryId } from "$lib/types";
+    import type { CategoryId, TakebackType } from "$lib/types";
 
     let { data } = $props();
 
     let query = $state("");
     let categories = $state<Set<CategoryId>>(new Set());
+    let takebackTypes = $state<Set<TakebackType>>(new Set());
     let selectedSlug = $state<string | null>(null);
     let mapRef: RecyclingMap | undefined = $state();
     let locating = $state(false);
@@ -22,7 +24,12 @@
     const PAGE_SIZE = 50;
 
     const filtered = $derived(
-        filterPoints(data.points, { query, categories, city: null }),
+        filterPoints(data.points, {
+            query,
+            categories,
+            takebackTypes,
+            city: null,
+        }),
     );
 
     const pageCount = $derived(
@@ -36,15 +43,62 @@
     const suggestions = $derived(buildSuggestions(data.points, query));
 
     const showResults = $derived(
-        query.trim().length > 0 || categories.size > 0,
+        query.trim().length > 0 ||
+            categories.size > 0 ||
+            takebackTypes.size > 0,
     );
 
     const cityCount = $derived(new Set(data.points.map((p) => p.city)).size);
+
+    const jsonLd = $derived([
+        {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            '@id': 'https://recycling.kompi.pl/#website',
+            url: 'https://recycling.kompi.pl/',
+            name: 'recycling.kompi.pl',
+            description:
+                'Mapa punktów zbiórki zużytego sprzętu elektronicznego, baterii i świetlówek w Polsce.',
+            inLanguage: 'pl-PL',
+            publisher: { '@id': 'https://kompi.pl/#org' },
+            potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                    '@type': 'EntryPoint',
+                    urlTemplate: 'https://recycling.kompi.pl/?q={search_term_string}',
+                },
+                'query-input': 'required name=search_term_string',
+            },
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            '@id': 'https://kompi.pl/#org',
+            name: 'kompi.pl',
+            url: 'https://kompi.pl/',
+            logo: 'https://recycling.kompi.pl/icon-maskable.svg',
+            email: 'kontakt@kompi.pl',
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'Service',
+            name: 'Wyszukiwarka punktów zbiórki elektroodpadów',
+            serviceType: 'E-waste recycling point directory',
+            provider: { '@id': 'https://kompi.pl/#org' },
+            areaServed: { '@type': 'Country', name: 'Poland' },
+            audience: {
+                '@type': 'Audience',
+                audienceType: 'Mieszkańcy Polski oddający elektroodpady',
+            },
+            description: `Katalog ${data.points.length.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
+        },
+    ]);
 
     // Reset to page 1 whenever the filter set changes.
     $effect(() => {
         void query;
         void categories;
+        void takebackTypes;
         page = 1;
     });
 
@@ -85,16 +139,31 @@
         name="description"
         content="Mapa punktów zbiórki zużytego sprzętu elektronicznego (ZSEiE), baterii, akumulatorów i świetlówek w Polsce. Znajdź najbliższy punkt."
     />
+    <meta
+        name="keywords"
+        content="punkty zbiórki elektroodpadów, recykling elektroniki, ZSEiE, zbiórka baterii, zużyty sprzęt AGD, świetlówki, PSZOK, mapa Polska"
+    />
     <link rel="canonical" href="https://recycling.kompi.pl/" />
+    <link rel="alternate" hreflang="pl-PL" href="https://recycling.kompi.pl/" />
+    <link rel="alternate" hreflang="x-default" href="https://recycling.kompi.pl/" />
     <meta
         property="og:title"
         content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów w Polsce"
     />
     <meta
         property="og:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek."
+        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {data.points.length.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
     />
     <meta property="og:url" content="https://recycling.kompi.pl/" />
+    <meta
+        name="twitter:title"
+        content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów"
+    />
+    <meta
+        name="twitter:description"
+        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek w Polsce."
+    />
+    {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
 
 <div class="map-app">
@@ -136,6 +205,10 @@
                         ><strong>{cityCount.toLocaleString("pl-PL")}</strong> miast</span
                     >
                 </div>
+            </div>
+
+            <div class="takeback-island">
+                <TakebackFilter bind:selected={takebackTypes} />
             </div>
 
             <div class="search-island">
@@ -220,12 +293,15 @@
                                 >
                             {/if}
                         </div>
-                        {#if categories.size > 0}
+                        {#if categories.size > 0 || takebackTypes.size > 0}
                             <button
                                 type="button"
                                 class="results-clear"
-                                onclick={() => (categories = new Set())}
-                                aria-label="Wyczyść filtry kategorii"
+                                onclick={() => {
+                                    categories = new Set();
+                                    takebackTypes = new Set();
+                                }}
+                                aria-label="Wyczyść filtry"
                             >
                                 Wyczyść filtry
                             </button>
@@ -441,6 +517,13 @@
             0 8px 32px rgba(0, 0, 0, 0.08),
             0 0 0 2px var(--kompi-accent-muted);
         transform: translateY(-1px);
+    }
+
+    /* Sits between search and results — narrow, transparent, no card bg.
+       Chips carry their own translucent background. */
+    .takeback-island {
+        pointer-events: auto;
+        padding: 0 4px;
     }
 
     .results-island {

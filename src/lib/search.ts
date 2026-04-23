@@ -1,5 +1,5 @@
 import type { SearchBoxItem } from './components/SearchBox.svelte';
-import type { CategoryId, RecyclingPoint } from './types';
+import type { CategoryId, RecyclingPoint, TakebackType } from './types';
 
 const PL_DIACRITICS: Record<string, string> = {
 	ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',
@@ -15,6 +15,7 @@ export function normalize(input: string): string {
 export type Filters = {
 	query: string;
 	categories: Set<CategoryId>;
+	takebackTypes: Set<TakebackType>;
 	city: string | null;
 };
 
@@ -28,6 +29,9 @@ export function filterPoints(
 		if (filters.categories.size > 0) {
 			const hasAny = p.categories.some((c) => filters.categories.has(c));
 			if (!hasAny) return false;
+		}
+		if (filters.takebackTypes.size > 0) {
+			if (!filters.takebackTypes.has(p.takebackType)) return false;
 		}
 		if (q.length > 0) {
 			const haystack = normalize(
