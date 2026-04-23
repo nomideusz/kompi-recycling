@@ -2,15 +2,61 @@ import type { SearchBoxItem } from './components/SearchBox.svelte';
 import { haversineKm, looksLikeAddress, type Anchor } from './distance';
 import type { CategoryId, RecyclingPoint, TakebackType } from './types';
 
-const PL_DIACRITICS: Record<string, string> = {
-	ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',
-	Ą: 'a', Ć: 'c', Ę: 'e', Ł: 'l', Ń: 'n', Ó: 'o', Ś: 's', Ź: 'z', Ż: 'z',
-};
+const DIACRITIC_RE = /\p{Diacritic}/gu;
+const WHITESPACE_RE = /\s+/g;
+const POLISH_L = /ł/g;
+const POLISH_L_UPPER = /Ł/g;
 
 export function normalize(input: string): string {
-	let out = '';
-	for (const ch of input) out += PL_DIACRITICS[ch] ?? ch.toLowerCase();
-	return out.replace(/\s+/g, ' ').trim();
+	if (!input) return '';
+	return input
+		.normalize('NFD')
+		.replace(DIACRITIC_RE, '')
+		.replace(POLISH_L, 'l')
+		.replace(POLISH_L_UPPER, 'l')
+		.toLowerCase()
+		.replace(WHITESPACE_RE, ' ')
+		.trim();
+}
+
+export type Indices = {
+	/** slug → normalized "name operator city address postalCode" haystack */
+	haystack: Map<string, string>;
+	/** slug → km from active anchor; null when no anchor is set */
+	distanceKm: Map<string, number> | null;
+};
+
+/**
+ * Precompute one normalized haystack per point. O(n) once, vs. O(n) per
+ * keystroke if filterPoints did this inline. Pass to filterPoints + sortByDistance.
+ */
+export function buildHaystackIndex(
+	points: RecyclingPoint[],
+): Map<string, string> {
+	const m = new Map<string, string>();
+	for (const p of points) {
+		m.set(
+			p.slug,
+			normalize(`${p.name} ${p.operator} ${p.city} ${p.address} ${p.postalCode}`),
+		);
+	}
+	return m;
+}
+
+/**
+ * Precompute distance from anchor for every point. Recompute only when
+ * `anchor` itself changes — not on every filter update.
+ */
+export function buildDistanceIndex(
+	points: RecyclingPoint[],
+	anchor: Anchor | null,
+): Map<string, number> | null {
+	if (!anchor) return null;
+	const m = new Map<string, number>();
+	for (const p of points) {
+		m.set(p.slug, haversineKm(p.lat, p.lng, anchor.lat, anchor.lng));
+	}
+	return m;
 }
 
 export type Filters = {
@@ -25,9 +71,13 @@ export type Filters = {
 export function filterPoints(
 	points: RecyclingPoint[],
 	filters: Filters,
+	indices?: Indices,
 ): RecyclingPoint[] {
 	const q = normalize(filters.query);
-	const proximityActive = filters.anchor && filters.radiusKm;
+	const proximityActive = filters.anchor !== null && filters.radiusKm !== null;
+	const distanceMap = indices?.distanceKm ?? null;
+	const haystackMap = indices?.haystack ?? null;
+
 	return points.filter((p) => {
 		if (filters.city && p.city !== filters.city) return false;
 		if (filters.categories.size > 0) {
@@ -38,18 +88,15 @@ export function filterPoints(
 			if (!filters.takebackTypes.has(p.takebackType)) return false;
 		}
 		if (q.length > 0) {
-			const haystack = normalize(
-				`${p.name} ${p.operator} ${p.city} ${p.address} ${p.postalCode}`,
-			);
+			const haystack =
+				haystackMap?.get(p.slug) ??
+				normalize(`${p.name} ${p.operator} ${p.city} ${p.address} ${p.postalCode}`);
 			if (!haystack.includes(q)) return false;
 		}
 		if (proximityActive) {
-			const d = haversineKm(
-				p.lat,
-				p.lng,
-				filters.anchor!.lat,
-				filters.anchor!.lng,
-			);
+			const d =
+				distanceMap?.get(p.slug) ??
+				haversineKm(p.lat, p.lng, filters.anchor!.lat, filters.anchor!.lng);
 			if (d > filters.radiusKm!) return false;
 		}
 		return true;
@@ -58,14 +105,22 @@ export function filterPoints(
 
 /**
  * Sort points by ascending distance from the anchor, when one is set.
- * Returns a fresh array; original is not mutated. With no anchor, returns
- * the input order.
+ * Uses the precomputed `distanceKm` map when supplied — that's O(n log n)
+ * Map lookups instead of O(n log n × 2) haversine calls.
  */
 export function sortByDistance(
 	points: RecyclingPoint[],
 	anchor: Anchor | null,
+	distanceMap?: Map<string, number> | null,
 ): RecyclingPoint[] {
 	if (!anchor) return points;
+	if (distanceMap) {
+		return [...points].sort(
+			(a, b) =>
+				(distanceMap.get(a.slug) ?? Infinity) -
+				(distanceMap.get(b.slug) ?? Infinity),
+		);
+	}
 	return [...points].sort(
 		(a, b) =>
 			haversineKm(a.lat, a.lng, anchor.lat, anchor.lng) -
@@ -94,11 +149,24 @@ export function buildSuggestions(
 	const hasDigit = /\d/.test(q);
 	const qDigits = q.replace(/[-\s]/g, '');
 
+	// Cities and operators have lots of duplicates (888 cities for 6k+ points).
+	// Memoize normalized values by raw value so each distinct string gets
+	// normalized at most once per call instead of once per row.
+	const normCache = new Map<string, string>();
+	const normMaybe = (s: string): string => {
+		if (!s) return '';
+		const cached = normCache.get(s);
+		if (cached !== undefined) return cached;
+		const out = normalize(s);
+		normCache.set(s, out);
+		return out;
+	};
+
 	for (const p of points) {
-		if (normalize(p.city).includes(q)) {
+		if (normMaybe(p.city).includes(q)) {
 			cities.set(p.city, (cities.get(p.city) ?? 0) + 1);
 		}
-		if (normalize(p.operator).includes(q)) {
+		if (normMaybe(p.operator).includes(q)) {
 			operators.set(p.operator, (operators.get(p.operator) ?? 0) + 1);
 		}
 		if (hasDigit) {

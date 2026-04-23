@@ -6,7 +6,13 @@
     import PointList from "$lib/components/PointList.svelte";
     import Pagination from "$lib/components/Pagination.svelte";
     import ProximityPill from "$lib/components/ProximityPill.svelte";
-    import { buildSuggestions, filterPoints, sortByDistance } from "$lib/search";
+    import {
+        buildDistanceIndex,
+        buildHaystackIndex,
+        buildSuggestions,
+        filterPoints,
+        sortByDistance,
+    } from "$lib/search";
     import { geocodeAddress, type Anchor } from "$lib/distance";
     import type { CategoryId, TakebackType } from "$lib/types";
 
@@ -30,18 +36,32 @@
 
     const PAGE_SIZE = 50;
 
+    // Recomputed only when data.points actually changes (basically once on
+    // load) — avoids redoing 6k+ string normalizations per keystroke.
+    const haystackIndex = $derived(buildHaystackIndex(data.points));
+
+    // Recomputed only when the anchor changes — avoids recomputing haversine
+    // distances per keystroke or radius slider tick.
+    const distanceIndex = $derived(buildDistanceIndex(data.points, anchor));
+
     const filtered = $derived(
-        filterPoints(data.points, {
-            query,
-            categories,
-            takebackTypes,
-            city: null,
-            anchor,
-            radiusKm,
-        }),
+        filterPoints(
+            data.points,
+            {
+                query,
+                categories,
+                takebackTypes,
+                city: null,
+                anchor,
+                radiusKm,
+            },
+            { haystack: haystackIndex, distanceKm: distanceIndex },
+        ),
     );
 
-    const sortedFiltered = $derived(sortByDistance(filtered, anchor));
+    const sortedFiltered = $derived(
+        sortByDistance(filtered, anchor, distanceIndex),
+    );
 
     const pageCount = $derived(
         Math.max(1, Math.ceil(sortedFiltered.length / PAGE_SIZE)),
