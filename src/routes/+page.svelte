@@ -283,7 +283,7 @@
     />
     <meta
         property="og:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {points.length.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
+        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {totalCount.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
     />
     <meta property="og:url" content="https://recycling.kompi.pl/" />
     <meta
@@ -336,7 +336,7 @@
                 <div class="brand-stats" aria-live="polite">
                     <span
                         ><strong
-                            >{points.length.toLocaleString(
+                            >{totalCount.toLocaleString(
                                 "pl-PL",
                             )}</strong
                         > punktów</span
