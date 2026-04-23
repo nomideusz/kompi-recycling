@@ -96,17 +96,17 @@
         const primary = p.categories[0];
         switch (primary) {
             case "weee":
-                return "#39ff14"; // Neon Green
+                return "#0778c1"; // Blue
             case "small":
-                return "#bf00ff"; // Electric Purple
+                return "#0560a0"; // Dark Blue
             case "battery":
-                return "#ff00ff"; // Neon Pink
+                return "#f97e21"; // Orange
             case "lamp":
-                return "#00e5ff"; // Cyan
+                return "#e06d12"; // Dark Orange
             case "mobile":
-                return "#ffaa00"; // Neon Orange
+                return "#272d2e"; // Dark
             default:
-                return "#39ff14";
+                return "#0778c1";
         }
     }
 
@@ -151,15 +151,14 @@
     `;
     }
 
-    // Category glyphs — simple, centered in a ~14px viewBox, monochrome.
-    // Drawn inside the pin's white disc.
+    // Category glyphs — Lucide icons (24x24), scaled down to fit in disc.
     const CATEGORY_GLYPHS: Record<string, string> = {
-        weee: '<rect x="4" y="3" width="14" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="4" y1="8" x2="18" y2="8" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="5.5" r="0.9" fill="currentColor"/><rect x="7" y="11" width="8" height="5.5" rx="0.8" fill="none" stroke="currentColor" stroke-width="1.4"/>',
-        small: '<rect x="3" y="5" width="14" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="2" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+        weee: '<rect width="20" height="14" x="2" y="3" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" x2="16" y1="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" x2="12" y1="17" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        small: '<rect x="5" y="2" width="14" height="20" rx="7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
         battery:
-            '<rect x="3.5" y="6.5" width="13" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="16.5" y="9" width="2" height="4" rx="0.4" fill="currentColor"/><rect x="5.5" y="8.5" width="3.2" height="5" rx="0.4" fill="currentColor"/>',
-        lamp: '<path d="M11 3a5.2 5.2 0 0 0-3 9.4V15h6v-2.6A5.2 5.2 0 0 0 11 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><line x1="8.5" y1="17" x2="13.5" y2="17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="9.5" y1="19" x2="12.5" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-        mobile: '<rect x="2" y="7" width="10" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9h4l3 3v3h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="6" cy="16.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="16.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/>',
+            '<path d="M 22 14 L 22 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        lamp: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 22h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        mobile: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
     };
 
     function buildMarkerPin(
@@ -175,7 +174,7 @@
       <svg class="kp-pin__svg" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path class="kp-pin__body" d="M16 1.5c-7.456 0-13.5 5.94-13.5 13.272 0 4.104 1.928 8.084 4.512 11.63 2.59 3.553 5.88 6.77 8.013 8.714a1.47 1.47 0 0 0 1.95 0c2.133-1.944 5.422-5.161 8.013-8.714 2.584-3.546 4.512-7.526 4.512-11.63C29.5 7.44 23.456 1.5 16 1.5z"/>
         <circle class="kp-pin__disc" cx="16" cy="14.75" r="7.5"/>
-        <g class="kp-pin__glyph" transform="translate(5 4)" color="var(--kp-pin-color)">${glyph}</g>
+        <g class="kp-pin__glyph" transform="translate(10 8.75) scale(0.5)" color="var(--kp-pin-color)">${glyph}</g>
       </svg>
     `;
         return wrapper;
@@ -509,7 +508,11 @@
         if (mapInstance.getZoom()! < zoom) mapInstance.setZoom(zoom);
     }
 
-    export function setAnchor(lat: number, lng: number, radiusKm: number | null) {
+    export function setAnchor(
+        lat: number,
+        lng: number,
+        radiusKm: number | null,
+    ) {
         if (!mapInstance) return;
         if (radiusKm == null) {
             anchorCircle?.setMap(null);
@@ -522,9 +525,9 @@
                 map: mapInstance,
                 center: { lat, lng },
                 radius: radiusMeters,
-                fillColor: "#39ff14",
+                fillColor: "#0778c1",
                 fillOpacity: 0.06,
-                strokeColor: "#39ff14",
+                strokeColor: "#0778c1",
                 strokeOpacity: 0.5,
                 strokeWeight: 1.5,
                 clickable: false,
@@ -680,7 +683,7 @@
         display: grid;
         place-items: center;
         border-radius: 50%;
-        background: #1f7a4f;
+        background: #0778c1;
         color: #ffffff;
         font-family: var(--kompi-font-sans);
         font-size: 12px;
@@ -699,7 +702,7 @@
         position: absolute;
         inset: -5px;
         border-radius: 50%;
-        background: rgba(31, 122, 79, 0.22);
+        background: rgba(7, 120, 193, 0.22);
         pointer-events: none;
     }
     :global(.kp-cluster__num) {

@@ -54,29 +54,29 @@
     --kompi-text-3: #a1a1aa;
     --kompi-text-4: #71717a;
 
-    --kompi-accent: #39ff14; /* Neon Green */
-    --kompi-accent-hover: #2de20d;
-    --kompi-accent-strong: #1ea006;
-    --kompi-accent-muted: rgba(57, 255, 20, 0.15);
-    --kompi-accent-subtle: rgba(57, 255, 20, 0.05);
+    --kompi-accent: #f97e21; /* Orange */
+    --kompi-accent-hover: #e06d12;
+    --kompi-accent-strong: #d05c00;
+    --kompi-accent-muted: rgba(249, 126, 33, 0.15);
+    --kompi-accent-subtle: rgba(249, 126, 33, 0.05);
 
-    --kompi-success: #39ff14;
+    --kompi-success: #16a34a;
     --kompi-warning: #ffb800;
     --kompi-danger: #ff003c;
     --kompi-info: #00e5ff;
 
-    /* Category hues - Neon Vibe */
-    --kompi-cat-weee: #39ff14; /* Neon Green */
-    --kompi-cat-battery: #ff00ff; /* Neon Pink */
-    --kompi-cat-lamp: #00e5ff; /* Cyan */
-    --kompi-cat-small: #bf00ff; /* Electric Purple */
-    --kompi-cat-mobile: #ffaa00; /* Neon Orange */
+    /* Category hues - Kompi Vibe */
+    --kompi-cat-weee: #0778c1; /* Blue */
+    --kompi-cat-battery: #f97e21; /* Orange */
+    --kompi-cat-lamp: #e06d12; /* Dark Orange */
+    --kompi-cat-small: #0560a0; /* Dark Blue */
+    --kompi-cat-mobile: #272d2e; /* Dark */
 
     /* Take-back-mode hues — muted on purpose, secondary to category colors */
-    --kompi-tb-free_dropbox: #4ade80;       /* mint green: no friction */
-    --kompi-tb-purchase_required: #f59e0b;  /* amber: requires purchase */
-    --kompi-tb-municipal: #60a5fa;          /* blue: institutional */
-    --kompi-tb-mobile_event: #c084fc;       /* lavender: scheduled event */
+    --kompi-tb-free_dropbox: #4ade80; /* mint green: no friction */
+    --kompi-tb-purchase_required: #f59e0b; /* amber: requires purchase */
+    --kompi-tb-municipal: #60a5fa; /* blue: institutional */
+    --kompi-tb-mobile_event: #c084fc; /* lavender: scheduled event */
 
     /* ── Layout ───────────────────────── */
     --kompi-container: 1200px;
@@ -107,11 +107,11 @@
     --kompi-shadow-sm:
         0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5);
     --kompi-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(57, 255, 20, 0.1);
+        0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(249, 126, 33, 0.1);
     --kompi-shadow-md:
-        0 8px 24px rgba(0, 0, 0, 0.7), 0 0 20px rgba(57, 255, 20, 0.15);
+        0 8px 24px rgba(0, 0, 0, 0.7), 0 0 20px rgba(249, 126, 33, 0.15);
     --kompi-shadow-lg:
-        0 16px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(57, 255, 20, 0.2);
+        0 16px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 126, 33, 0.2);
     --kompi-ring: 0 0 0 2px var(--kompi-bg), 0 0 0 4px var(--kompi-accent);
 
     /* ── Motion ───────────────────────── */
