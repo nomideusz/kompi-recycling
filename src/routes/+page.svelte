@@ -14,6 +14,7 @@
         sortByDistance,
     } from "$lib/search";
     import { geocodeAddress, type Anchor } from "$lib/distance";
+    import { fromWire } from "$lib/wire";
     import type { CategoryId, TakebackType } from "$lib/types";
 
     let { data } = $props();
@@ -36,17 +37,22 @@
 
     const PAGE_SIZE = 50;
 
-    // Recomputed only when data.points actually changes (basically once on
+    // Server ships a slim `WirePoint[]` (empty strings omitted); rehydrate
+    // back to RecyclingPoint shape once. Reruns only when data.points
+    // identity changes — basically just on initial load.
+    const points = $derived(data.points.map(fromWire));
+
+    // Recomputed only when points actually changes (basically once on
     // load) — avoids redoing 6k+ string normalizations per keystroke.
-    const haystackIndex = $derived(buildHaystackIndex(data.points));
+    const haystackIndex = $derived(buildHaystackIndex(points));
 
     // Recomputed only when the anchor changes — avoids recomputing haversine
     // distances per keystroke or radius slider tick.
-    const distanceIndex = $derived(buildDistanceIndex(data.points, anchor));
+    const distanceIndex = $derived(buildDistanceIndex(points, anchor));
 
     const filtered = $derived(
         filterPoints(
-            data.points,
+            points,
             {
                 query,
                 categories,
@@ -71,7 +77,7 @@
         sortedFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     );
 
-    const suggestions = $derived(buildSuggestions(data.points, query));
+    const suggestions = $derived(buildSuggestions(points, query));
 
     const showResults = $derived(
         query.trim().length > 0 ||
@@ -80,7 +86,7 @@
             anchor !== null,
     );
 
-    const cityCount = $derived(new Set(data.points.map((p) => p.city)).size);
+    const cityCount = $derived(new Set(points.map((p) => p.city)).size);
 
     const jsonLd = $derived([
         {
@@ -122,7 +128,7 @@
                 '@type': 'Audience',
                 audienceType: 'Mieszkańcy Polski oddający elektroodpady',
             },
-            description: `Katalog ${data.points.length.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
+            description: `Katalog ${points.length.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
         },
     ]);
 
@@ -240,7 +246,7 @@
     />
     <meta
         property="og:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {data.points.length.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
+        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {points.length.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
     />
     <meta property="og:url" content="https://recycling.kompi.pl/" />
     <meta
@@ -283,7 +289,7 @@
                 <div class="brand-stats" aria-live="polite">
                     <span
                         ><strong
-                            >{data.points.length.toLocaleString(
+                            >{points.length.toLocaleString(
                                 "pl-PL",
                             )}</strong
                         > punktów</span
