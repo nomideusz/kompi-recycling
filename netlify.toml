@@ -1,0 +1,24 @@
+# Netlify build configuration for recycling.kompi.pl
+# Source: github.com/nomideusz/kompi-recycling (synced from asini monorepo)
+
+[build]
+  command = "pnpm build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # pnpm is auto-detected from packageManager field or pnpm-lock.yaml.
+  # If Netlify build fails to find pnpm, uncomment:
+  # NPM_FLAGS = "--version"
+  # and add a `packageManager` field to package.json, e.g. "pnpm@9.0.0".
+
+# SvelteKit's adapter-auto detects Netlify and emits the right output.
+# If you switch to @sveltejs/adapter-netlify explicitly, no changes here are needed.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self)"
