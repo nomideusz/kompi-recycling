@@ -70,12 +70,12 @@
   function markerColor(p: RecyclingPoint): string {
     const primary = p.categories[0];
     switch (primary) {
-      case 'weee': return '#2f855a';
-      case 'small': return '#2b6cb0';
-      case 'battery': return '#c17b1d';
-      case 'lamp': return '#8a6dbf';
-      case 'mobile': return '#b5497a';
-      default: return '#2f855a';
+      case 'weee': return '#39ff14'; // Neon Green
+      case 'small': return '#bf00ff'; // Electric Purple
+      case 'battery': return '#ff00ff'; // Neon Pink
+      case 'lamp': return '#00e5ff'; // Cyan
+      case 'mobile': return '#ffaa00'; // Neon Orange
+      default: return '#39ff14';
     }
   }
 
@@ -195,6 +195,26 @@
       zoomControl: true,
       clickableIcons: false,
       mapId: mapId || undefined,
+      styles: mapId ? undefined : [
+          { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+          { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+          { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+          { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+          { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#263c3f' }] },
+          { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6b9a76' }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
+          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
+          { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
+          { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#746855' }] },
+          { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1f2835' }] },
+          { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#f3d19c' }] },
+          { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2f3948' }] },
+          { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
+          { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#515c6d' }] },
+          { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#17263c' }] }
+      ]
     });
 
     infoWindow = new google.maps.InfoWindow({ disableAutoPan: false });
