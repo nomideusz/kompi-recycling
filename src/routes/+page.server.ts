@@ -39,16 +39,15 @@ function aggregateCities(points: RecyclingPoint[]): CityAggregate[] {
   })).sort((a, b) => b.count - a.count);
 }
 
-export const load = async ({ setHeaders }) => {
-  // Edge-cache the rendered page: 5 min CDN cache + 10 min stale-while-revalidate.
-  // The underlying dataset only changes when the scraper pushes (daily-ish), so
-  // a stale window of a few minutes is invisible to users. Most importantly,
-  // any subsequent visitor in the same Netlify region gets the cached HTML
-  // instead of triggering an SSR + Turso roundtrip.
-  setHeaders({
-    'cache-control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
-  });
+// The initial render is identical for every visitor (fixed bbox, fixed limit)
+// and only changes when the scraper pushes — so bake it at build time instead
+// of paying Netlify cold start + Turso wake (~6s) + a 16MB full-table fetch
+// per SSR request. The client still fetches live data via /api/points on
+// pan/zoom. ponytail: data is frozen at deploy; trigger a Netlify build hook
+// from the scraper if daily freshness matters.
+export const prerender = true;
 
+export const load = async () => {
   try {
     const [initial, cityAggregates] = await Promise.all([
       getPointsInBbox(POLAND_BBOX, INITIAL_LIMIT),
