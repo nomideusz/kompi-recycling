@@ -26,13 +26,24 @@ function parseCategories(raw: string | null): CategoryId[] {
   }
 }
 
-/** Scraped rows often carry bare domains ("www.ikea.pl/Targowek"). Rendered
- * as-is in an href they resolve relative to /punkt/… — which 404s and, worse,
- * fails the prerender crawl at build time. */
+/** Scraped rows put anything in the website column: bare domains
+ * ("www.ikea.pl/Targowek", which as a raw href resolves relative to /punkt/…
+ * and 404s) and even phone numbers ("+48 855 855 855", which once prefixed
+ * becomes a syntactically invalid URL and hard-crashes the prerender
+ * crawler). Prefix protocol-less values, then keep only what parses as a
+ * real http(s) URL with a dotted hostname. */
 function normalizeWebsite(raw: string | null): string | undefined {
   const trimmed = raw?.trim();
   if (!trimmed) return undefined;
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+    if (!url.hostname.includes('.')) return undefined;
+    return candidate;
+  } catch {
+    return undefined;
+  }
 }
 
 function toPoint(r: RecyclingPointRow): RecyclingPoint {
