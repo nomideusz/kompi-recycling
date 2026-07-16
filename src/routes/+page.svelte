@@ -150,40 +150,51 @@
         if (showResults) store.ensureAll();
     });
 
-    // With the full dataset loadable, the raw filtered set can reach 30k —
-    // clustering handles that visually, but creating 30k marker elements
-    // doesn't. Restrict pins to a padded viewport and stride-sample above
-    // the cap; the results list stays uncapped.
-    const MAX_MAP_MARKERS = 2500;
+    // The map runs in one of two modes:
+    //  - markers: the viewport's tiles are fully loaded and small enough to
+    //    render as pins, so the clusterer's counts are exact;
+    //  - aggregates: anything else (initial country view, un-fetched areas,
+    //    >4k points in view) draws true-count circles computed from the city
+    //    aggregates (unfiltered) or the complete filtered set — numbers that
+    //    don't grow as tiles stream in. The densest metro tile holds ~2.1k
+    //    points, so 4k keeps whole-city views in marker mode.
+    const MAX_MAP_MARKERS = 4000;
 
-    function capForMap(
+    function pointsInView(
         pts: RecyclingPoint[],
         b: Bbox | null,
-    ): { points: RecyclingPoint[]; capped: boolean } {
-        let candidate = pts;
-        if (b) {
-            const latPad = (b.north - b.south) * 0.25;
-            const lngPad = (b.east - b.west) * 0.25;
-            candidate = pts.filter(
-                (p) =>
-                    p.lat <= b.north + latPad &&
-                    p.lat >= b.south - latPad &&
-                    p.lng <= b.east + lngPad &&
-                    p.lng >= b.west - lngPad,
-            );
-        }
-        if (candidate.length <= MAX_MAP_MARKERS) {
-            return { points: candidate, capped: false };
-        }
-        const stride = candidate.length / MAX_MAP_MARKERS;
-        const out = new Array<RecyclingPoint>(MAX_MAP_MARKERS);
-        for (let i = 0; i < MAX_MAP_MARKERS; i++) {
-            out[i] = candidate[Math.floor(i * stride)];
-        }
-        return { points: out, capped: true };
+    ): RecyclingPoint[] {
+        if (!b) return pts;
+        const latPad = (b.north - b.south) * 0.25;
+        const lngPad = (b.east - b.west) * 0.25;
+        return pts.filter(
+            (p) =>
+                p.lat <= b.north + latPad &&
+                p.lat >= b.south - latPad &&
+                p.lng <= b.east + lngPad &&
+                p.lng >= b.west - lngPad,
+        );
     }
 
-    const mapView = $derived(capForMap(sortedFiltered, mapBounds));
+    const inView = $derived(pointsInView(sortedFiltered, mapBounds));
+    const markerMode = $derived(
+        !store.truncated && inView.length <= MAX_MAP_MARKERS,
+    );
+    const mapAggregates = $derived(
+        markerMode
+            ? null
+            : showResults
+              ? sortedFiltered.map((p) => ({
+                    lat: p.lat,
+                    lng: p.lng,
+                    count: 1,
+                }))
+              : cityAggregates.map((c) => ({
+                    lat: c.lat,
+                    lng: c.lng,
+                    count: c.count,
+                })),
+    );
 
     const totalCount = $derived(data.totalCount);
     const cityCount = $derived(cityAggregates.length);
@@ -420,7 +431,8 @@
     <div class="map-layer" aria-label="Mapa punktów zbiórki">
         <RecyclingMap
             bind:this={mapRef}
-            points={mapView.points}
+            points={markerMode ? inView : []}
+            aggregates={mapAggregates}
             apiKey={data.googleMapsApiKey}
             mapId={data.googleMapsMapId}
             bind:selectedSlug
@@ -429,12 +441,12 @@
         />
     </div>
 
-    {#if store.truncated || mapView.capped}
+    {#if !markerMode}
         <div class="truncation-hint" role="status">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/>
             </svg>
-            <span>Przybliż, aby zobaczyć wszystkie punkty w tym obszarze</span>
+            <span>Przybliż, aby zobaczyć pojedyncze punkty</span>
         </div>
     {/if}
 

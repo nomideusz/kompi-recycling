@@ -8,8 +8,11 @@
     import { TAKEBACKS_BY_ID } from "$lib/takebacks";
     import type { RecyclingPoint } from "$lib/types";
 
+    export type AggregateItem = { lat: number; lng: number; count: number };
+
     let {
         points = [],
+        aggregates = null,
         apiKey = "",
         mapId = "",
         selectedSlug = $bindable<string | null>(null),
@@ -18,6 +21,10 @@
         onready,
     }: {
         points: RecyclingPoint[];
+        /** When set, the map draws true-count aggregate circles (bucketed by
+         * zoom) instead of individual markers — used while the viewport's
+         * point data is incomplete or too large to render as pins. */
+        aggregates?: AggregateItem[] | null;
         apiKey: string;
         mapId?: string;
         selectedSlug?: string | null;
@@ -57,6 +64,10 @@
     // Poland center — used when there are no points to fit to.
     const POLAND_CENTER = { lat: 52.07, lng: 19.48 };
     const POLAND_ZOOM = 6;
+    // Mainland bounds (Hel at 54.84°N, Bieszczady at 49.0°S) — tighter than
+    // the data bbox so the initial fitBounds doesn't round the zoom out a
+    // level to accommodate empty sea.
+    const POLAND_BOUNDS = { north: 54.9, south: 49.0, east: 24.2, west: 14.1 };
 
     function loadGoogleMaps(): Promise<void> {
         const hasBase = !!(window as any).google?.maps?.Map;
@@ -209,26 +220,17 @@
         };
     }
 
-    function fitToPoints() {
-        if (!mapInstance) return;
-        if (points.length === 0) {
-            mapInstance.setCenter(POLAND_CENTER);
-            mapInstance.setZoom(POLAND_ZOOM);
-            return;
-        }
-        if (points.length === 1) {
-            mapInstance.setCenter({ lat: points[0].lat, lng: points[0].lng });
-            mapInstance.setZoom(13);
-            return;
-        }
-        const bounds = new google.maps.LatLngBounds();
-        for (const p of points) bounds.extend({ lat: p.lat, lng: p.lng });
-        mapInstance.fitBounds(bounds, {
-            top: 80,
-            bottom: 40,
-            left: 400,
-            right: 40,
-        });
+    function fitToPoland() {
+        if (!mapInstance || !mapEl) return;
+        // On phones the controls stack on top, on desktop they occupy a
+        // ~400px left column — pad accordingly so Poland fills what's left.
+        const compact = mapEl.clientWidth < 720;
+        mapInstance.fitBounds(
+            POLAND_BOUNDS,
+            compact
+                ? { top: 116, bottom: 24, left: 16, right: 16 }
+                : { top: 80, bottom: 40, left: 430, right: 40 },
+        );
     }
 
     function initMap() {
@@ -347,25 +349,108 @@
         });
 
         // The idle event fires after pan/zoom settles — no debounce needed
-        // on top. Parent uses these bounds to drive bbox-fetching.
-        if (onbounds) {
-            mapInstance.addListener("idle", () => {
-                const b = mapInstance!.getBounds();
-                if (!b) return;
-                const ne = b.getNorthEast();
-                const sw = b.getSouthWest();
-                onbounds({
-                    north: ne.lat(),
-                    south: sw.lat(),
-                    east: ne.lng(),
-                    west: sw.lng(),
-                });
+        // on top. Parent uses these bounds to drive bbox-fetching; the
+        // aggregate layer re-buckets when the zoom level actually changed.
+        mapInstance.addListener("idle", () => {
+            const zoom = Math.round(mapInstance!.getZoom() ?? POLAND_ZOOM);
+            if (aggregates && zoom !== lastAggZoom) renderAggregates();
+            const b = mapInstance!.getBounds();
+            if (!b) return;
+            const ne = b.getNorthEast();
+            const sw = b.getSouthWest();
+            onbounds?.({
+                north: ne.lat(),
+                south: sw.lat(),
+                east: ne.lng(),
+                west: sw.lng(),
             });
-        }
+        });
 
-        fitToPoints();
+        fitToPoland();
         reconcileMarkers();
+        renderAggregates();
         onready?.();
+    }
+
+    // ── Aggregate circle layer ─────────────────────────────────────────
+    // True counts bucketed into a ~88px screen grid at the current zoom.
+    // Unlike the marker clusterer these numbers come from the full dataset
+    // (city aggregates or the complete filtered set), so they don't grow
+    // as tiles stream in.
+
+    let aggMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
+    let lastAggZoom = -1;
+
+    function bucketAggregates(
+        items: AggregateItem[],
+        zoom: number,
+    ): AggregateItem[] {
+        const cellDeg = (88 * 360) / (256 * Math.pow(2, zoom));
+        const buckets = new Map<
+            string,
+            { latSum: number; lngSum: number; count: number }
+        >();
+        for (const it of items) {
+            const key = `${Math.floor(it.lat / cellDeg)}:${Math.floor(it.lng / cellDeg)}`;
+            let b = buckets.get(key);
+            if (!b) {
+                b = { latSum: 0, lngSum: 0, count: 0 };
+                buckets.set(key, b);
+            }
+            b.latSum += it.lat * it.count;
+            b.lngSum += it.lng * it.count;
+            b.count += it.count;
+        }
+        return [...buckets.values()].map((b) => ({
+            lat: b.latSum / b.count,
+            lng: b.lngSum / b.count,
+            count: b.count,
+        }));
+    }
+
+    function formatCount(n: number): string {
+        if (n < 1000) return String(n);
+        const k = n / 1000;
+        return k < 10
+            ? `${k.toFixed(1).replace(".", ",")} tys.`
+            : `${Math.round(k)} tys.`;
+    }
+
+    function renderAggregates() {
+        if (!mapInstance) return;
+        for (const m of aggMarkers) m.map = null;
+        aggMarkers = [];
+        if (!aggregates || aggregates.length === 0) return;
+
+        const zoom = Math.round(mapInstance.getZoom() ?? POLAND_ZOOM);
+        lastAggZoom = zoom;
+
+        for (const b of bucketAggregates(aggregates, zoom)) {
+            const size = Math.min(56, 28 + Math.sqrt(b.count) * 1.6);
+            const el = document.createElement("div");
+            el.className = "kp-cluster";
+            el.style.width = `${size}px`;
+            el.style.height = `${size}px`;
+            el.innerHTML = `
+          <span class="kp-cluster__ring" aria-hidden="true"></span>
+          <span class="kp-cluster__num">${formatCount(b.count)}</span>
+        `;
+            const marker = new google.maps.marker.AdvancedMarkerElement({
+                position: { lat: b.lat, lng: b.lng },
+                map: mapInstance,
+                content: el,
+                zIndex: 500 + Math.min(499, b.count),
+                gmpClickable: true,
+            });
+            marker.addEventListener("gmp-click", () => {
+                if (!mapInstance) return;
+                mapInstance.panTo({ lat: b.lat, lng: b.lng });
+                mapInstance.setZoom(
+                    Math.min(14, (mapInstance.getZoom() ?? POLAND_ZOOM) + 2),
+                );
+            });
+            aggMarkers.push(marker);
+        }
     }
 
     function openPopup(
@@ -490,6 +575,16 @@
         if (!loaded || !mapInstance) return;
         untrack(() => {
             reconcileMarkers();
+        });
+    });
+
+    // Redraw the aggregate layer when its input changes (mode switches,
+    // filters recompute the counts, tiles finish loading).
+    $effect(() => {
+        void aggregates;
+        if (!loaded || !mapInstance) return;
+        untrack(() => {
+            renderAggregates();
         });
     });
 
