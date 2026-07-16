@@ -42,9 +42,9 @@ function aggregateCities(points: RecyclingPoint[]): CityAggregate[] {
 // The initial render is identical for every visitor (fixed bbox, fixed limit)
 // and only changes when the scraper pushes — so bake it at build time instead
 // of paying Netlify cold start + Turso wake (~6s) + a 16MB full-table fetch
-// per SSR request. The client still fetches live data via /api/points on
-// pan/zoom. ponytail: data is frozen at deploy; trigger a Netlify build hook
-// from the scraper if daily freshness matters.
+// per SSR request. The client streams prerendered static tiles from
+// /data/tiles on pan/zoom. Data is frozen at deploy; trigger a Netlify build
+// hook from the scraper if daily freshness matters.
 export const prerender = true;
 
 export const load = async () => {

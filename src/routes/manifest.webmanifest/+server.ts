@@ -11,7 +11,7 @@ const MANIFEST = {
 	orientation: 'portrait',
 	lang: 'pl-PL',
 	background_color: '#09090b',
-	theme_color: '#1f7a4f',
+	theme_color: '#09090b',
 	categories: ['utilities', 'productivity', 'navigation'],
 	icons: [
 		{

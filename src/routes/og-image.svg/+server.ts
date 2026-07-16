@@ -4,15 +4,15 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#09090b"/>
-      <stop offset="100%" stop-color="#0f1f16"/>
+      <stop offset="100%" stop-color="#1a1210"/>
     </linearGradient>
     <radialGradient id="glow" cx="0.85" cy="0.15" r="0.6">
-      <stop offset="0%" stop-color="#39ff14" stop-opacity="0.35"/>
-      <stop offset="70%" stop-color="#39ff14" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#f97e21" stop-opacity="0.3"/>
+      <stop offset="70%" stop-color="#f97e21" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glow2" cx="0.1" cy="0.95" r="0.5">
-      <stop offset="0%" stop-color="#bf00ff" stop-opacity="0.25"/>
-      <stop offset="70%" stop-color="#bf00ff" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#0778c1" stop-opacity="0.25"/>
+      <stop offset="70%" stop-color="#0778c1" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
@@ -22,7 +22,7 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
 
   <g transform="translate(80, 90)">
     <g transform="translate(0, 0)">
-      <rect width="96" height="96" rx="20" fill="#39ff14"/>
+      <rect width="96" height="96" rx="20" fill="#f97e21"/>
       <g transform="translate(18, 18)" stroke="#09090b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
         <path d="M30 48H7a4 4 0 0 1-3.5-6L12 26"/>
         <path d="M30 48h22a4 4 0 0 0 3.5-6L52 36"/>
@@ -44,16 +44,16 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   </g>
 
   <g transform="translate(80, 500)" font-family="'Inter',system-ui,sans-serif" font-size="26" font-weight="500" fill="#a1a1aa">
-    <circle cx="12" cy="-8" r="6" fill="#39ff14"/>
+    <circle cx="12" cy="-8" r="6" fill="#0778c1"/>
     <text x="32" y="0">Duży sprzęt AGD/RTV</text>
 
-    <circle cx="342" cy="-8" r="6" fill="#00e5ff"/>
+    <circle cx="342" cy="-8" r="6" fill="#0560a0"/>
     <text x="362" y="0">Mały sprzęt</text>
 
-    <circle cx="582" cy="-8" r="6" fill="#ffaa00"/>
+    <circle cx="582" cy="-8" r="6" fill="#f97e21"/>
     <text x="602" y="0">Baterie</text>
 
-    <circle cx="762" cy="-8" r="6" fill="#ff00ff"/>
+    <circle cx="762" cy="-8" r="6" fill="#e06d12"/>
     <text x="782" y="0">Świetlówki</text>
   </g>
 

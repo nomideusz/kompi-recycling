@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#1f7a4f"/>
+  <rect width="32" height="32" rx="6" fill="#f97e21"/>
   <g transform="translate(4 4)" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M15 24H3.5a2 2 0 0 1-1.75-3L6 13"/>
     <path d="M15 24h11a2 2 0 0 0 1.75-3L26 18"/>

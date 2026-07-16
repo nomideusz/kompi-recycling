@@ -15,6 +15,7 @@
         selectedSlug = $bindable<string | null>(null),
         onselect,
         onbounds,
+        onready,
     }: {
         points: RecyclingPoint[];
         apiKey: string;
@@ -27,6 +28,7 @@
             east: number;
             west: number;
         }) => void;
+        onready?: () => void;
     } = $props();
 
     let mapEl: HTMLDivElement | undefined = $state();
@@ -363,6 +365,7 @@
 
         fitToPoints();
         reconcileMarkers();
+        onready?.();
     }
 
     function openPopup(
@@ -663,7 +666,7 @@
         overflow: visible;
     }
     :global(.kp-pin__body) {
-        fill: var(--kp-pin-color, #2f855a);
+        fill: var(--kp-pin-color, #0778c1);
         stroke: #ffffff;
         stroke-width: 1.5;
     }
@@ -671,7 +674,7 @@
         fill: #ffffff;
     }
     :global(.kp-pin__glyph) {
-        color: var(--kp-pin-color, #2f855a);
+        color: var(--kp-pin-color, #0778c1);
     }
     :global(.kp-pin--selected .kp-pin__body) {
         stroke-width: 2;

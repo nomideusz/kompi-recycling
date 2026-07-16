@@ -16,24 +16,18 @@
     import { geocodeAddress, type Anchor } from "$lib/distance";
     import { cityAggFromWire, fromWire } from "$lib/wire";
     import { PointStore, type Bbox } from "$lib/pointStore.svelte";
+    import { CATEGORIES_BY_ID } from "$lib/categories";
+    import { TAKEBACKS_BY_ID } from "$lib/takebacks";
     import type { CategoryId, TakebackType } from "$lib/types";
+    import { browser } from "$app/environment";
+    import { replaceState } from "$app/navigation";
 
     let { data } = $props();
-
-    // Initial bbox the SSR payload was filtered against — so the store
-    // doesn't refetch the country view on first idle.
-    const POLAND_BBOX: Bbox = {
-        north: 55.5,
-        south: 49.0,
-        east: 24.5,
-        west: 14.0,
-    };
 
     const store = new PointStore();
     store.seed(
         data.initialPoints.map(fromWire),
         data.totalCount,
-        POLAND_BBOX,
         data.initialTruncated,
     );
 
@@ -50,6 +44,41 @@
     let page = $state(1);
 
     const DEFAULT_RADIUS_KM = 10;
+
+    // The page is prerendered, so query params are invisible to the server —
+    // restore filter state from the URL on the client instead. This is what
+    // makes shared links, the SearchAction JSON-LD (`/?q={term}`) and the
+    // breadcrumb `/?q=<city>` links actually work.
+    if (browser) {
+        const sp = new URLSearchParams(window.location.search);
+        const q = sp.get("q")?.trim();
+        if (q) query = q;
+        const cat = sp
+            .get("cat")
+            ?.split(",")
+            .filter((c): c is CategoryId => c in CATEGORIES_BY_ID);
+        if (cat && cat.length > 0) categories = new Set(cat);
+        const tb = sp
+            .get("tb")
+            ?.split(",")
+            .filter((t): t is TakebackType => t in TAKEBACKS_BY_ID);
+        if (tb && tb.length > 0) takebackTypes = new Set(tb);
+        const lat = Number.parseFloat(sp.get("lat") ?? "");
+        const lng = Number.parseFloat(sp.get("lng") ?? "");
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            anchor = {
+                lat,
+                lng,
+                label: sp.get("loc")?.trim() || "Wybrana lokalizacja",
+                source: "address",
+            };
+            const r = Number.parseFloat(sp.get("r") ?? "");
+            radiusKm =
+                Number.isFinite(r) && r > 0
+                    ? Math.min(100, r)
+                    : DEFAULT_RADIUS_KM;
+        }
+    }
 
     import KompiLogo from "$lib/images/logo/logo-kompi-white.png";
 
@@ -165,6 +194,44 @@
         void radiusKm;
         page = 1;
     });
+
+    // Mirror filter state into the URL (debounced) so any view is shareable
+    // and survives a reload. GPS anchors are deliberately not serialized —
+    // a copied link must not leak the user's location.
+    $effect(() => {
+        const sp = new URLSearchParams();
+        const q = query.trim();
+        if (q) sp.set("q", q);
+        if (categories.size > 0) sp.set("cat", [...categories].join(","));
+        if (takebackTypes.size > 0)
+            sp.set("tb", [...takebackTypes].join(","));
+        if (anchor && anchor.source === "address") {
+            sp.set("lat", anchor.lat.toFixed(5));
+            sp.set("lng", anchor.lng.toFixed(5));
+            if (radiusKm !== null) sp.set("r", String(radiusKm));
+            if (anchor.label) sp.set("loc", anchor.label);
+        }
+        const qs = sp.toString();
+        const timer = setTimeout(() => {
+            if (qs === window.location.search.replace(/^\?/, "")) return;
+            replaceState(qs ? `?${qs}` : window.location.pathname, {});
+        }, 300);
+        return () => clearTimeout(timer);
+    });
+
+    // Once the map exists, apply state restored from the URL: draw the
+    // anchor circle and pan to it, or pan to an exactly-matching city.
+    function handleMapReady() {
+        if (anchor) {
+            mapRef?.setAnchor(anchor.lat, anchor.lng, radiusKm ?? null);
+            mapRef?.panTo(anchor.lat, anchor.lng, 13);
+            return;
+        }
+        const q = query.trim().toLowerCase();
+        if (!q) return;
+        const agg = cityAggregates.find((c) => c.city.toLowerCase() === q);
+        if (agg) mapRef?.panTo(agg.lat, agg.lng, 12);
+    }
 
     // Whenever the anchor or radius changes, mirror it to the map (circle +
     // pan). Clearing the anchor wipes the on-map circle.
@@ -310,6 +377,7 @@
             mapId={data.googleMapsMapId}
             bind:selectedSlug
             onbounds={handleBounds}
+            onready={handleMapReady}
         />
     </div>
 
@@ -564,18 +632,6 @@
         min-height: 0;
     }
 
-    /* Glassmorphism utility for islands */
-    .island-glass {
-        background: rgba(24, 24, 27, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.06),
-            0 1px 2px rgba(0, 0, 0, 0.04);
-    }
-
     .brand-island {
         pointer-events: auto;
         display: flex;
@@ -589,8 +645,8 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.06),
-            0 1px 2px rgba(0, 0, 0, 0.04);
+            0 4px 24px rgba(0, 0, 0, 0.35),
+            0 1px 2px rgba(0, 0, 0, 0.3);
         transition:
             transform 0.2s var(--kompi-ease),
             box-shadow 0.2s var(--kompi-ease);
@@ -598,8 +654,8 @@
     .brand-island:hover {
         transform: translateY(-1px);
         box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.08),
-            0 1px 2px rgba(0, 0, 0, 0.04);
+            0 8px 32px rgba(0, 0, 0, 0.45),
+            0 1px 2px rgba(0, 0, 0, 0.3);
     }
     .brand {
         display: flex;
@@ -641,7 +697,7 @@
         align-items: baseline;
         flex-shrink: 0;
         padding: 6px 12px;
-        background: rgba(0, 0, 0, 0.03);
+        background: rgba(255, 255, 255, 0.06);
         border-radius: 20px;
     }
     .brand-stats strong {
@@ -662,15 +718,15 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.06),
-            0 1px 2px rgba(0, 0, 0, 0.04);
+            0 4px 24px rgba(0, 0, 0, 0.35),
+            0 1px 2px rgba(0, 0, 0, 0.3);
         transition:
             transform 0.2s var(--kompi-ease),
             box-shadow 0.2s var(--kompi-ease);
     }
     .search-island:focus-within {
         box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.08),
+            0 8px 32px rgba(0, 0, 0, 0.45),
             0 0 0 2px var(--kompi-accent-muted);
         transform: translateY(-1px);
     }
@@ -730,14 +786,14 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.06),
-            0 1px 2px rgba(0, 0, 0, 0.04);
+            0 4px 24px rgba(0, 0, 0, 0.35),
+            0 1px 2px rgba(0, 0, 0, 0.3);
         overflow: hidden;
     }
 
     .results-head {
         padding: 14px 20px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         font-size: 13px;
         color: var(--kompi-text-3);
         display: flex;
@@ -789,7 +845,7 @@
         transition: all 0.2s ease;
     }
     .results-clear:hover {
-        background: rgba(185, 53, 33, 0.1);
+        background: rgba(255, 0, 60, 0.12);
         color: var(--kompi-danger);
     }
 
@@ -800,7 +856,7 @@
         overflow-x: hidden;
         padding: 16px;
         scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+        scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
     }
 
     .results-scroll::-webkit-scrollbar {
@@ -810,7 +866,7 @@
         background: transparent;
     }
     .results-scroll::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.18);
         border-radius: 10px;
     }
 
@@ -845,7 +901,7 @@
     }
     .chips-island :global(.chip) {
         white-space: nowrap;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(24, 24, 27, 0.85);
@@ -857,7 +913,7 @@
     }
     .chips-island :global(.chip:hover) {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     .locate-btn {
@@ -908,7 +964,7 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-left: 4px solid var(--kompi-danger);
         border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         color: var(--kompi-text);
         font-size: 14px;
         display: flex;
@@ -931,7 +987,7 @@
         place-items: center;
         width: 28px;
         height: 28px;
-        background: rgba(0, 0, 0, 0.03);
+        background: rgba(255, 255, 255, 0.06);
         border: 0;
         color: var(--kompi-text-3);
         border-radius: 50%;
@@ -939,7 +995,7 @@
         transition: all 0.2s var(--kompi-ease);
     }
     .toast-close:hover {
-        background: rgba(185, 53, 33, 0.1);
+        background: rgba(255, 0, 60, 0.12);
         color: var(--kompi-danger);
         transform: rotate(90deg);
     }

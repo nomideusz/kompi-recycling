@@ -164,7 +164,7 @@
     transition: all 0.15s ease;
   }
   .pill-close:hover {
-    background: rgba(185, 53, 33, 0.25);
+    background: rgba(255, 0, 60, 0.18);
     color: var(--kompi-danger);
   }
 

@@ -35,6 +35,8 @@
     trailing?: Snippet;
   } = $props();
 
+  const uid = $props.id();
+
   let inputEl: HTMLInputElement | undefined = $state();
   let showDropdown = $state(false);
   let activeIndex = $state(-1);
@@ -130,7 +132,11 @@
     autocapitalize="off"
     spellcheck="false"
     aria-label={ariaLabel}
+    role="combobox"
     aria-autocomplete="list"
+    aria-expanded={isOpen}
+    aria-controls="{uid}-listbox"
+    aria-activedescendant={activeIndex >= 0 ? `${uid}-opt-${activeIndex}` : undefined}
     {placeholder}
   />
 
@@ -148,7 +154,7 @@
   {/if}
 
   {#if isOpen}
-    <div class="sb-dropdown" role="listbox">
+    <div class="sb-dropdown" role="listbox" id="{uid}-listbox">
       {#each results as item, i (item.key)}
         {@const showGroup = item.group && (i === 0 || results[i - 1].group !== item.group)}
         {#if showGroup}
@@ -159,6 +165,7 @@
           class="sb-item"
           class:sb-item--active={i === activeIndex}
           role="option"
+          id="{uid}-opt-{i}"
           aria-selected={i === activeIndex}
           onmousedown={(e) => { e.preventDefault(); onselect?.(item, i); }}
         >
@@ -231,7 +238,7 @@
     place-items: center;
     width: 32px;
     height: 32px;
-    background: rgba(0,0,0,0.03);
+    background: rgba(255, 255, 255, 0.06);
     border: 0;
     color: var(--kompi-text-3);
     border-radius: 50%;
@@ -240,14 +247,14 @@
   }
   .sb-clear:hover {
     color: var(--kompi-danger);
-    background: rgba(185, 53, 33, 0.1);
+    background: rgba(255, 0, 60, 0.12);
     transform: rotate(90deg);
   }
 
   .sb-sep {
     width: 1px;
     height: 24px;
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
   }
 
@@ -261,7 +268,7 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.35);
     z-index: 50;
     max-height: 50vh;
     overflow-y: auto;
@@ -301,11 +308,11 @@
   }
   .sb-item:hover,
   .sb-item--active {
-    background: rgba(31, 122, 79, 0.05);
-    color: var(--kompi-accent-strong);
+    background: var(--kompi-accent-subtle);
+    color: var(--kompi-accent);
   }
   .sb-item--active {
-    background: rgba(31, 122, 79, 0.1);
+    background: var(--kompi-accent-muted);
     font-weight: 600;
   }
 
@@ -336,7 +343,7 @@
     letter-spacing: 0.02em;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    background: rgba(0,0,0,0.04);
+    background: rgba(255, 255, 255, 0.06);
     padding: 2px 8px;
     border-radius: 12px;
   }

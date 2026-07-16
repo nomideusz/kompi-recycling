@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 // Maskable icon — the logo sits in the center ~60% "safe zone" per the
 // maskable icon spec so platforms can round/clip the edges without cropping it.
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1f7a4f"/>
+  <rect width="512" height="512" fill="#f97e21"/>
   <g transform="translate(156 156)" stroke="white" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M125 200H28a16 16 0 0 1-14-24L50 108"/>
     <path d="M125 200h97a16 16 0 0 0 14-24l-10-16"/>

@@ -46,7 +46,7 @@
             openingHours: p.hours || undefined,
             description,
             areaServed: { "@type": "City", name: p.city },
-            image: "https://recycling.kompi.pl/og-image.svg",
+            image: "https://recycling.kompi.pl/og-image.png",
             sameAs: p.website ? [p.website] : undefined,
         },
         {
@@ -536,16 +536,16 @@
         border-color: var(--kompi-accent);
         color: white;
         box-shadow:
-            0 1px 2px rgba(18, 74, 46, 0.2),
-            0 4px 12px rgba(18, 74, 46, 0.15);
+            0 1px 2px rgba(249, 126, 33, 0.2),
+            0 4px 12px rgba(249, 126, 33, 0.15);
     }
     .btn-primary:hover {
         background: var(--kompi-accent-hover);
         border-color: var(--kompi-accent-hover);
         color: white;
         box-shadow:
-            0 2px 4px rgba(18, 74, 46, 0.2),
-            0 8px 20px rgba(18, 74, 46, 0.2);
+            0 2px 4px rgba(249, 126, 33, 0.2),
+            0 8px 20px rgba(249, 126, 33, 0.25);
     }
 
     .grid {

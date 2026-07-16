@@ -108,21 +108,21 @@
         background: rgba(24, 24, 27, 0.7);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         cursor: pointer;
         text-align: left;
         position: relative;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
     .card:hover,
     .card:focus-visible {
         background: rgba(34, 34, 38, 0.95);
         border-color: rgba(249, 126, 33, 0.2);
         box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.06),
-            0 2px 8px rgba(0, 0, 0, 0.04);
+            0 8px 24px rgba(0, 0, 0, 0.4),
+            0 2px 8px rgba(0, 0, 0, 0.3);
         transform: translateY(-2px) scale(1.01);
         outline: none;
         z-index: 1;
@@ -189,7 +189,7 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
         font-weight: 600;
-        background: rgba(0, 0, 0, 0.03);
+        background: rgba(255, 255, 255, 0.06);
         padding: 2px 6px;
         border-radius: 6px;
     }
@@ -217,7 +217,7 @@
         font-family: var(--kompi-font-mono);
         font-size: 12px;
         margin-bottom: 12px;
-        background: rgba(0, 0, 0, 0.02);
+        background: rgba(255, 255, 255, 0.05);
         padding: 4px 8px;
         border-radius: 6px;
         display: inline-flex;
@@ -239,13 +239,13 @@
         font-weight: 600;
         color: var(--kompi-text-2);
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 20px;
         letter-spacing: -0.005em;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     .card:hover .cats li {
-        border-color: rgba(0, 0, 0, 0.08);
+        border-color: rgba(255, 255, 255, 0.14);
     }
     .dot {
         width: 8px;
