@@ -26,6 +26,15 @@ function parseCategories(raw: string | null): CategoryId[] {
   }
 }
 
+/** Scraped rows often carry bare domains ("www.ikea.pl/Targowek"). Rendered
+ * as-is in an href they resolve relative to /punkt/… — which 404s and, worse,
+ * fails the prerender crawl at build time. */
+function normalizeWebsite(raw: string | null): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 function toPoint(r: RecyclingPointRow): RecyclingPoint {
   return {
     slug: r.slug,
@@ -40,7 +49,7 @@ function toPoint(r: RecyclingPointRow): RecyclingPoint {
     takebackType: parseTakebackType(r.takebackType),
     hours: r.hours ?? '',
     phone: r.phone ?? undefined,
-    website: r.website ?? undefined,
+    website: normalizeWebsite(r.website),
     notes: r.notes ?? undefined,
   };
 }
