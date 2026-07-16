@@ -34,6 +34,7 @@ export class PointStore {
 	#loadedTiles = new Set<string>();
 	#inflightTiles = new Map<string, Promise<boolean>>();
 	#pendingCount = 0;
+	#ensureAllPromise: Promise<void> | null = null;
 
 	points = $state<RecyclingPoint[]>([]);
 	loading = $state(false);
@@ -72,6 +73,47 @@ export class PointStore {
 		this.truncated = viewTiles.some((k) => !this.#loadedTiles.has(k));
 	}
 
+	/**
+	 * Load every remaining tile so text search and filter counts cover the
+	 * whole dataset, not just the tiles the user happened to pan across.
+	 * ~1.6MB gzipped total, one-time, off the CDN. Points are published in
+	 * one batch at the end so the derived search indexes rebuild once
+	 * instead of once per tile.
+	 */
+	ensureAll(): Promise<void> {
+		this.#ensureAllPromise ??= (async () => {
+			const index = await this.#ensureIndex();
+			if (!index) {
+				this.#ensureAllPromise = null;
+				return;
+			}
+			const missing = Object.keys(index.tiles).filter(
+				(k) => !this.#loadedTiles.has(k),
+			);
+			const CONCURRENCY = 8;
+			let next = 0;
+			const workers = Array.from(
+				{ length: Math.min(CONCURRENCY, missing.length) },
+				async () => {
+					while (next < missing.length) {
+						const key = missing[next++];
+						await this.#fetchTile(key, { publish: false });
+					}
+				},
+			);
+			await Promise.all(workers);
+			this.points = [...this.#bySlug.values()];
+
+			if (Object.keys(index.tiles).every((k) => this.#loadedTiles.has(k))) {
+				this.truncated = false;
+			} else {
+				// Some tiles failed — allow a retry on the next trigger.
+				this.#ensureAllPromise = null;
+			}
+		})();
+		return this.#ensureAllPromise;
+	}
+
 	#ensureIndex(): Promise<TileIndex | null> {
 		if (this.#index) return Promise.resolve(this.#index);
 		this.#indexPromise ??= (async () => {
@@ -93,10 +135,11 @@ export class PointStore {
 	}
 
 	/** Fetch one tile, dedup concurrent requests. Resolves true on success. */
-	#fetchTile(key: string): Promise<boolean> {
+	#fetchTile(key: string, opts?: { publish?: boolean }): Promise<boolean> {
 		const existing = this.#inflightTiles.get(key);
 		if (existing) return existing;
 
+		const publish = opts?.publish ?? true;
 		const promise = (async () => {
 			this.#pendingCount += 1;
 			this.loading = true;
@@ -106,7 +149,7 @@ export class PointStore {
 				const data = (await res.json()) as { points: WirePoint[] };
 				for (const w of data.points) this.#bySlug.set(w.slug, fromWire(w));
 				this.#loadedTiles.add(key);
-				this.points = [...this.#bySlug.values()];
+				if (publish) this.points = [...this.#bySlug.values()];
 				this.error = null;
 				return true;
 			} catch (e) {

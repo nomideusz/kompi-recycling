@@ -18,7 +18,11 @@
     import { PointStore, type Bbox } from "$lib/pointStore.svelte";
     import { CATEGORIES_BY_ID } from "$lib/categories";
     import { TAKEBACKS_BY_ID } from "$lib/takebacks";
-    import type { CategoryId, TakebackType } from "$lib/types";
+    import type {
+        CategoryId,
+        RecyclingPoint,
+        TakebackType,
+    } from "$lib/types";
     import { browser } from "$app/environment";
     import { replaceState } from "$app/navigation";
 
@@ -42,6 +46,7 @@
     let locating = $state(false);
     let locateError = $state<string | null>(null);
     let page = $state(1);
+    let mapBounds = $state<Bbox | null>(null);
 
     const DEFAULT_RADIUS_KM = 10;
 
@@ -137,6 +142,48 @@
             takebackTypes.size > 0 ||
             anchor !== null,
     );
+
+    // The moment any filter is active the user expects results from the
+    // whole country, not just the tiles they've panned across — pull the
+    // rest of the dataset in the background (one-time, idempotent).
+    $effect(() => {
+        if (showResults) store.ensureAll();
+    });
+
+    // With the full dataset loadable, the raw filtered set can reach 30k —
+    // clustering handles that visually, but creating 30k marker elements
+    // doesn't. Restrict pins to a padded viewport and stride-sample above
+    // the cap; the results list stays uncapped.
+    const MAX_MAP_MARKERS = 2500;
+
+    function capForMap(
+        pts: RecyclingPoint[],
+        b: Bbox | null,
+    ): { points: RecyclingPoint[]; capped: boolean } {
+        let candidate = pts;
+        if (b) {
+            const latPad = (b.north - b.south) * 0.25;
+            const lngPad = (b.east - b.west) * 0.25;
+            candidate = pts.filter(
+                (p) =>
+                    p.lat <= b.north + latPad &&
+                    p.lat >= b.south - latPad &&
+                    p.lng <= b.east + lngPad &&
+                    p.lng >= b.west - lngPad,
+            );
+        }
+        if (candidate.length <= MAX_MAP_MARKERS) {
+            return { points: candidate, capped: false };
+        }
+        const stride = candidate.length / MAX_MAP_MARKERS;
+        const out = new Array<RecyclingPoint>(MAX_MAP_MARKERS);
+        for (let i = 0; i < MAX_MAP_MARKERS; i++) {
+            out[i] = candidate[Math.floor(i * stride)];
+        }
+        return { points: out, capped: true };
+    }
+
+    const mapView = $derived(capForMap(sortedFiltered, mapBounds));
 
     const totalCount = $derived(data.totalCount);
     const cityCount = $derived(cityAggregates.length);
@@ -280,6 +327,7 @@
     }
 
     function handleBounds(b: Bbox) {
+        mapBounds = b;
         store.fetchBbox(b);
     }
 
@@ -372,7 +420,7 @@
     <div class="map-layer" aria-label="Mapa punktów zbiórki">
         <RecyclingMap
             bind:this={mapRef}
-            points={sortedFiltered}
+            points={mapView.points}
             apiKey={data.googleMapsApiKey}
             mapId={data.googleMapsMapId}
             bind:selectedSlug
@@ -381,7 +429,7 @@
         />
     </div>
 
-    {#if store.truncated}
+    {#if store.truncated || mapView.capped}
         <div class="truncation-hint" role="status">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/>

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { building } from '$app/environment';
 import { db } from '../index';
 import { recyclingPoints, type RecyclingPointRow } from '../schema';
 import type { RecyclingPoint, CategoryId, TakebackType } from '$lib/types';
@@ -54,7 +54,12 @@ let pointsCache: { points: RecyclingPoint[]; expiresAt: number } | null = null;
 
 export async function getAllPoints(): Promise<RecyclingPoint[]> {
   const now = Date.now();
-  if (pointsCache && pointsCache.expiresAt > now) return pointsCache.points;
+  // During prerender the whole build must see one immutable snapshot —
+  // a TTL expiry mid-build could otherwise drop a slug between entries()
+  // and its page render and fail the build with a 404.
+  if (pointsCache && (building || pointsCache.expiresAt > now)) {
+    return pointsCache.points;
+  }
 
   const rows = await db.select().from(recyclingPoints);
   const points = rows.map(toPoint);
@@ -62,13 +67,18 @@ export async function getAllPoints(): Promise<RecyclingPoint[]> {
   return points;
 }
 
+// Memoised against the points-cache reference, same pattern as the city
+// aggregates below. Turns the 30k per-slug queries a prerender would issue
+// into one full-table fetch + Map lookups.
+const slugCache: { map?: Map<string, RecyclingPoint>; computedFor?: RecyclingPoint[] } = {};
+
 export async function getPointBySlug(slug: string): Promise<RecyclingPoint | null> {
-  const rows = await db
-    .select()
-    .from(recyclingPoints)
-    .where(eq(recyclingPoints.slug, slug))
-    .limit(1);
-  return rows[0] ? toPoint(rows[0]) : null;
+  const points = await getAllPoints();
+  if (slugCache.computedFor !== points || !slugCache.map) {
+    slugCache.map = new Map(points.map((p) => [p.slug, p]));
+    slugCache.computedFor = points;
+  }
+  return slugCache.map.get(slug) ?? null;
 }
 
 export type Bbox = {
