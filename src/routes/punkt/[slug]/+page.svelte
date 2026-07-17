@@ -74,8 +74,6 @@
             ],
         },
     ]);
-
-    import KompiLogo from "$lib/images/logo/logo-kompi-white.png";
 </script>
 
 <svelte:head>
@@ -98,39 +96,6 @@
     <meta name="twitter:description" content={description} />
     {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
-
-<div class="topbar">
-    <div class="topbar-inner">
-        <a class="brand" href="/">
-            <img
-                src={KompiLogo}
-                alt="Kompi"
-                class="brand-logo"
-                width="100"
-                height="30"
-            />
-            <span class="brand-word">
-                <span class="brand-tag">recycling</span>
-            </span>
-        </a>
-        <a class="back" href="/">
-            <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-            >
-                <path d="m15 18-6-6 6-6" />
-            </svg>
-            Wróć do mapy
-        </a>
-    </div>
-</div>
 
 <div class="container">
     <article class="inner">
@@ -356,72 +321,6 @@
 </div>
 
 <style>
-    .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: var(--kompi-surface);
-        border-bottom: 1px solid var(--kompi-border);
-        backdrop-filter: saturate(180%) blur(8px);
-    }
-    .topbar-inner {
-        max-width: var(--kompi-container);
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--kompi-space-4);
-        padding: 10px var(--kompi-gutter);
-    }
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--kompi-text);
-        text-decoration: none;
-    }
-    .brand:hover {
-        text-decoration: none;
-        color: var(--kompi-text);
-    }
-    .brand-logo {
-        display: block;
-        height: 30px;
-        width: auto;
-        object-fit: contain;
-    }
-    .brand-word {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.15;
-        border-left: 1px solid var(--kompi-border-strong);
-        padding-left: 12px;
-    }
-    .brand-tag {
-        font-size: 16px;
-        color: var(--kompi-text-2);
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
-    .back {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: var(--kompi-text-sm);
-        font-weight: 500;
-        color: var(--kompi-text-2);
-        padding: 6px 10px;
-        border-radius: var(--kompi-radius-sm);
-        transition:
-            background var(--kompi-dur-fast) var(--kompi-ease),
-            color var(--kompi-dur-fast) var(--kompi-ease);
-    }
-    .back:hover {
-        background: var(--kompi-bg);
-        color: var(--kompi-accent);
-        text-decoration: none;
-    }
-
     .container {
         flex: 1;
         padding: var(--kompi-space-10) var(--kompi-gutter) var(--kompi-space-12);

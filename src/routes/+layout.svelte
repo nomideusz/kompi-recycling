@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
   import '../app.css';
+  import SiteHeader from '$lib/components/SiteHeader.svelte';
+  import SiteFooter from '$lib/components/SiteFooter.svelte';
 
   let { children } = $props();
 
@@ -10,9 +12,13 @@
 
 <a href="#main" class="sr-only sr-only-focusable">Przejdź do treści</a>
 
+<SiteHeader />
+
 <main id="main" class:map={isMapPage}>
   {@render children()}
 </main>
+
+<SiteFooter />
 
 <style>
   main {
