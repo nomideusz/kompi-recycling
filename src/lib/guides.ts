@@ -37,7 +37,7 @@ export const GUIDES: Guide[] = [
 			'powerbanki',
 		],
 		notAccepted: [
-			'akumulatory samochodowe (zobacz poradnik „Akumulatory")',
+			'akumulatory samochodowe (zobacz poradnik „Akumulatory”)',
 			'uszkodzone ogniwa z wyciekiem — te zabezpiecz i zawieź do PSZOK',
 		],
 		prep: [
@@ -80,7 +80,7 @@ export const GUIDES: Guide[] = [
 			'akumulatory żelowe i AGM',
 		],
 		notAccepted: [
-			'baterie AA/AAA i akumulatorki (zobacz poradnik „Baterie")',
+			'baterie AA/AAA i akumulatorki (zobacz poradnik „Baterie”)',
 			'baterie trakcyjne z aut elektrycznych — te wymienia wyłącznie serwis',
 		],
 		prep: [
@@ -354,7 +354,7 @@ export const GUIDES: Guide[] = [
 			'Uwaga na częsty błąd: świetlówki i LED-y to elektroodpady, ale tradycyjna żarówka wolframowa — nie. Świetlówki zawierają rtęć i muszą trafić do specjalnego pojemnika; zwykłą żarówkę można wyrzucić do zmieszanych.',
 		accepted: [
 			'świetlówki kompaktowe (energooszczędne)',
-			'świetlówki liniowe („jarzeniówki")',
+			'świetlówki liniowe („jarzeniówki”)',
 			'żarówki i moduły LED',
 			'lampy wyładowcze i halogenki metalohalogenkowe',
 		],
@@ -406,7 +406,7 @@ export const GUIDES: Guide[] = [
 		prep: [
 			'Sprawdź harmonogram zbiórek wielkogabarytowych na stronie gminy.',
 			'Wystaw odpady najwcześniej dzień przed terminem — wcześniej to zaśmiecanie.',
-			'Sprawne meble spróbuj najpierw oddać: fundacje, grupy sąsiedzkie, „oddam za darmo".',
+			'Sprawne meble spróbuj najpierw oddać: fundacje, grupy sąsiedzkie, „oddam za darmo”.',
 		],
 		afterLife:
 			'Wielkogabaryty są rozbierane: drewno idzie na płyty i paliwo, metal do hut, pianki i tkaniny na paliwo alternatywne.',
