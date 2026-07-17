@@ -231,6 +231,29 @@
             {/if}
         </div>
 
+        {#if p.takebackType === "municipal"}
+            <p class="caveat">
+                PSZOK przyjmuje odpady od mieszkańców swojej gminy; limity
+                ilościowe mogą się różnić między gminami — zadzwoń lub
+                sprawdź stronę przed wizytą.
+            </p>
+        {/if}
+        {#if !p.phone}
+            <p class="no-phone">
+                Brak numeru telefonu w naszej bazie —
+                {#if p.website}
+                    sprawdź
+                    <a
+                        href={p.website}
+                        target="_blank"
+                        rel="noopener noreferrer">stronę punktu</a
+                    >.
+                {:else}
+                    zajrzyj na stronę swojej gminy.
+                {/if}
+            </p>
+        {/if}
+
         <div class="grid">
             <section class="details">
                 <div class="panel">
@@ -317,7 +340,42 @@
                 </a>
             </p>
         </footer>
+
+        {#if data.alternatives.length > 0}
+            <section class="alts" aria-label="Punkty w pobliżu">
+                <h2>Inne punkty w pobliżu</h2>
+                <ul>
+                    {#each data.alternatives as alt (alt.slug)}
+                        <li>
+                            <a href="/punkt/{alt.slug}">
+                                <span class="alt-name">{alt.name}</span>
+                                <span class="alt-meta"
+                                    >{alt.address}, {alt.city}</span
+                                >
+                                <span class="alt-dist"
+                                    >{alt.distanceKm.toLocaleString(
+                                        "pl-PL",
+                                    )} km</span
+                                >
+                            </a>
+                        </li>
+                    {/each}
+                </ul>
+            </section>
+        {/if}
     </article>
+</div>
+
+<div class="sticky-actions">
+    <a
+        class="btn btn-primary"
+        href={directionsUrl}
+        target="_blank"
+        rel="noopener noreferrer">Nawiguj</a
+    >
+    {#if p.phone}
+        <a class="btn" href="tel:{p.phone.replace(/\s+/g, '')}">Zadzwoń</a>
+    {/if}
 </div>
 
 <style>
@@ -403,6 +461,21 @@
         flex-wrap: wrap;
         gap: var(--kompi-space-2);
         margin-bottom: var(--kompi-space-10);
+    }
+    .caveat {
+        margin: 16px 0 0;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--kompi-text-2);
+        background: var(--kompi-accent-subtle);
+        border: 1px solid var(--kompi-accent-muted);
+        border-radius: 12px;
+    }
+    .no-phone {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--kompi-text-3);
     }
     .btn {
         display: inline-flex;
@@ -573,5 +646,79 @@
     .report {
         margin: 0;
         color: var(--kompi-text-3);
+    }
+
+    .alts {
+        margin-top: 32px;
+    }
+    .alts h2 {
+        font-size: 18px;
+        margin: 0 0 12px;
+    }
+    .alts ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+    }
+    .alts a {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "name dist" "meta dist";
+        gap: 2px 12px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--kompi-border);
+        border-radius: 12px;
+        color: var(--kompi-text);
+        text-decoration: none;
+    }
+    .alts a:hover {
+        border-color: var(--kompi-accent);
+    }
+    .alt-name {
+        grid-area: name;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .alt-meta {
+        grid-area: meta;
+        font-size: 12px;
+        color: var(--kompi-text-3);
+    }
+    .alt-dist {
+        grid-area: dist;
+        align-self: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--kompi-accent);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .sticky-actions {
+        display: none;
+    }
+    @media (max-width: 720px) {
+        .inner {
+            padding-bottom: 88px;
+        }
+        .sticky-actions {
+            display: flex;
+            gap: 10px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 30;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            background: rgba(9, 9, 11, 0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--kompi-border);
+        }
+        .sticky-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
     }
 </style>
