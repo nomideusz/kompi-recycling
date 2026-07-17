@@ -1301,9 +1301,9 @@
             top: 12px;
             left: 12px;
             right: 12px;
-            bottom: 12px;
+            bottom: 0;
             grid-template-columns: minmax(0, 1fr);
-            gap: 12px;
+            gap: 10px;
         }
         .chips-island {
             align-self: stretch;
@@ -1311,6 +1311,28 @@
         }
         .left-col {
             order: 1;
+            min-height: 0;
+            flex: 1;
+        }
+        /* Results become a bottom sheet: map stays visible above. */
+        .results-island {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            max-height: 48dvh;
+            border-radius: 16px 16px 0 0;
+            border-bottom: 0;
+        }
+        .results-island::before {
+            content: "";
+            display: block;
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.25);
+            margin: 8px auto 0;
+            flex-shrink: 0;
         }
         .brand-tag {
             display: none;
@@ -1321,7 +1343,7 @@
         }
         .toast {
             top: auto;
-            bottom: 20px;
+            bottom: 50dvh;
             left: 12px;
             right: 12px;
             max-width: none;
@@ -1330,6 +1352,12 @@
         .search-island,
         .results-island {
             border-radius: 12px;
+        }
+        .results-island {
+            border-radius: 16px 16px 0 0;
+        }
+        .truncation-hint {
+            bottom: calc(48dvh + 12px);
         }
     }
 
