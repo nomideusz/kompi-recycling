@@ -77,6 +77,13 @@
     --kompi-cat-lamp: #e06d12; /* Dark Orange */
     --kompi-cat-small: #0560a0; /* Dark Blue */
     --kompi-cat-mobile: #272d2e; /* Dark */
+    --kompi-cat-car-battery: #c2410c; /* Deep orange */
+    --kompi-cat-oil: #92400e; /* Brown */
+    --kompi-cat-tires: #52525b; /* Graphite */
+    --kompi-cat-chemicals: #9333ea; /* Violet */
+    --kompi-cat-meds: #dc2626; /* Red */
+    --kompi-cat-bulky: #0d9488; /* Teal */
+    --kompi-cat-textiles: #db2777; /* Magenta */
 
     /* Take-back-mode hues — muted on purpose, secondary to category colors */
     --kompi-tb-free_dropbox: #4ade80; /* mint green: no friction */

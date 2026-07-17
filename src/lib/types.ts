@@ -3,7 +3,14 @@ export type CategoryId =
 	| 'battery'
 	| 'lamp'
 	| 'small'
-	| 'mobile';
+	| 'mobile'
+	| 'car_battery'
+	| 'oil'
+	| 'tires'
+	| 'chemicals'
+	| 'meds'
+	| 'bulky'
+	| 'textiles';
 
 export type TakebackType =
 	| 'free_dropbox'
