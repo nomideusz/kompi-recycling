@@ -716,6 +716,7 @@
                                 points={nearestFallback}
                                 {selectedSlug}
                                 onhover={(slug) => (selectedSlug = slug)}
+                                distanceKm={distanceIndex}
                             />
                             <button
                                 type="button"
@@ -733,6 +734,7 @@
                                 points={pagedPoints}
                                 {selectedSlug}
                                 onhover={(slug) => (selectedSlug = slug)}
+                                distanceKm={distanceIndex}
                             />
                         {/if}
                     </div>
