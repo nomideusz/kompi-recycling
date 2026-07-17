@@ -37,7 +37,7 @@
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (open && active >= 0 && results[active]) pick(results[active]);
-      else if (results.length > 0) pick(results[0]);
+      else if (open && results.length > 0) pick(results[0]);
       else if (query.trim() && onfreetext) {
         onfreetext(query.trim());
         query = '';
@@ -85,6 +85,7 @@
         >
           <button
             type="button"
+            tabindex="-1"
             onmousedown={(e) => {
               e.preventDefault();
               pick(item);
