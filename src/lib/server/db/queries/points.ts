@@ -2,6 +2,7 @@ import { building } from '$app/environment';
 import { db } from '../index';
 import { recyclingPoints, type RecyclingPointRow } from '../schema';
 import type { RecyclingPoint, CategoryId, TakebackType } from '$lib/types';
+import { CATEGORIES_BY_ID } from '$lib/categories';
 
 const TAKEBACK_TYPES: ReadonlySet<TakebackType> = new Set([
   'free_dropbox',
@@ -20,7 +21,9 @@ function parseCategories(raw: string | null): CategoryId[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as CategoryId[]) : [];
+    return Array.isArray(parsed)
+      ? (parsed as string[]).filter((c): c is CategoryId => c in CATEGORIES_BY_ID)
+      : [];
   } catch {
     return [];
   }

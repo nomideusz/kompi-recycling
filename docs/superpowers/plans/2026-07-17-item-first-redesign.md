@@ -2949,6 +2949,7 @@ git commit -m "feat: mobile bottom-sheet results + final polish"
 
 ## Post-implementation (operator checklist, not tasks)
 
-1. Run the PSZOK backfill against production Turso: `pnpm tsx scripts/run-backfill.ts backfill_pszok_categories.sql` (needs real `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` in `.env`).
+1. Run the PSZOK backfill against production Turso BEFORE merging to main (the merge itself triggers a Netlify deploy that bakes tiles): `pnpm tsx scripts/run-backfill.ts backfill_pszok_categories.sql` (needs real `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` in `.env`). If the backfill hasn't run, the 7 new categories render zero results in production.
 2. Trigger the Netlify build hook so tiles re-bake with the new categories.
 3. Smoke-test production: `/?item=olej-silnikowy` should show ~1.9k PSZOK results.
+4. Watch the first production build's duration: the per-page nearest-alternatives pass is O(N²) over ~30k points. If the build budget is exceeded, precompute a spatial-grid neighbor index once per build instead.

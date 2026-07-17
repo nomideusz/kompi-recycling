@@ -24,7 +24,8 @@
   {#if pszokOnly}
     <p class="caveat">
       PSZOK-i przyjmują odpady od mieszkańców swojej gminy, a limity mogą się
-      różnić — najlepiej zadzwoń przed wizytą.
+      różnić — najlepiej zadzwoń przed wizytą. Wkrótce dodamy tu także punkty
+      specjalistyczne — m.in. apteki, warsztaty i serwisy ogumienia.
     </p>
   {/if}
   {#if item.guideSlug}

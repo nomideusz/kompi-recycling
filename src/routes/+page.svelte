@@ -29,6 +29,7 @@
     } from "$lib/types";
     import { browser } from "$app/environment";
     import { replaceState } from "$app/navigation";
+    import { tick } from "svelte";
 
     let { data } = $props();
 
@@ -56,6 +57,15 @@
         selectedItemId ? (ITEMS_BY_ID[selectedItemId] ?? null) : null,
     );
 
+    // The rules box only makes sense while the item's categories are still
+    // part of the active filter — invalidate the item when they diverge.
+    $effect(() => {
+        if (!selectedItem) return;
+        if (!selectedItem.categories.every((c) => categories.has(c))) {
+            selectedItemId = null;
+        }
+    });
+
     function pickItem(item: WasteItem) {
         selectedItemId = item.id;
         categories = new Set(item.categories);
@@ -80,7 +90,8 @@
             .get("cat")
             ?.split(",")
             .filter((c): c is CategoryId => c in CATEGORIES_BY_ID);
-        if (cat && cat.length > 0) categories = new Set(cat);
+        const catApplied = cat !== undefined && cat.length > 0;
+        if (catApplied) categories = new Set(cat);
         const tb = sp
             .get("tb")
             ?.split(",")
@@ -89,7 +100,11 @@
         const itemParam = sp.get("item");
         if (itemParam && itemParam in ITEMS_BY_ID) {
             selectedItemId = itemParam;
-            categories = new Set(ITEMS_BY_ID[itemParam].categories);
+            // A refined `cat` param in a shared link takes precedence over
+            // the item's default categories — don't clobber it.
+            if (!catApplied) {
+                categories = new Set(ITEMS_BY_ID[itemParam].categories);
+            }
         }
         const lat = Number.parseFloat(sp.get("lat") ?? "");
         const lng = Number.parseFloat(sp.get("lng") ?? "");
@@ -344,6 +359,19 @@
         }
     });
 
+    // Hand keyboard/AT focus to the results overlay when it appears —
+    // otherwise focus silently falls to <body> behind it.
+    let wasShowingResults = false;
+    $effect(() => {
+        const showing = showResults;
+        if (showing && !wasShowingResults && browser) {
+            tick().then(() =>
+                document.getElementById("results-top")?.focus(),
+            );
+        }
+        wasShowingResults = showing;
+    });
+
     function locateMe() {
         if (!("geolocation" in navigator)) {
             locateError = "Twoja przeglądarka nie obsługuje geolokalizacji.";
@@ -451,20 +479,20 @@
     <link rel="alternate" hreflang="x-default" href="https://recycling.kompi.pl/" />
     <meta
         property="og:title"
-        content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów w Polsce"
+        content="recycling.kompi.pl — gdzie oddać elektroodpady, baterie, oleje i opony"
     />
     <meta
         property="og:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {totalCount.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
+        content="Znajdź najbliższy punkt zbiórki: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia, leki i tekstylia. Ponad {totalCount.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
     />
     <meta property="og:url" content="https://recycling.kompi.pl/" />
     <meta
         name="twitter:title"
-        content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów"
+        content="recycling.kompi.pl — gdzie oddać elektroodpady, baterie, oleje i opony"
     />
     <meta
         name="twitter:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek w Polsce."
+        content="Znajdź najbliższy punkt zbiórki: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia i leki."
     />
     {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
@@ -662,7 +690,11 @@
             {#if showResults}
                 <div class="results-island" aria-label="Wyniki">
                     <div class="results-head">
-                        <div class="results-head-line">
+                        <div
+                            class="results-head-line"
+                            id="results-top"
+                            tabindex="-1"
+                        >
                             <strong
                                 >{sortedFiltered.length.toLocaleString(
                                     "pl-PL",
@@ -689,8 +721,7 @@
                                 type="button"
                                 class="results-clear"
                                 onclick={() => {
-                                    selectedItemId = null;
-                                    categories = new Set();
+                                    clearItem();
                                     takebackTypes = new Set();
                                     anchor = null;
                                     radiusKm = null;
@@ -1038,6 +1069,11 @@
         gap: 8px;
         min-width: 0;
     }
+    /* Focus target for the landing→results morph — not an interactive
+       element, so no visible focus ring needed. */
+    #results-top {
+        outline: none;
+    }
     .results-head strong {
         color: var(--kompi-text);
         font-weight: 700;
@@ -1092,7 +1128,7 @@
     .fallback-note {
         margin: 0 0 10px;
         font-size: 13px;
-        color: var(--kompi-warning, #eab308);
+        color: var(--kompi-warning);
     }
     .widen {
         margin-top: 12px;

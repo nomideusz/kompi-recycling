@@ -380,7 +380,7 @@
         class="btn btn-primary"
         href={directionsUrl}
         target="_blank"
-        rel="noopener noreferrer">Nawiguj</a
+        rel="noopener noreferrer">Wyznacz trasę</a
     >
     {#if p.phone}
         <a class="btn" href="tel:{p.phone.replace(/\s+/g, '')}">Zadzwoń</a>
