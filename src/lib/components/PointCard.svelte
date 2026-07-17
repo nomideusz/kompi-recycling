@@ -7,11 +7,21 @@
         point,
         selected = false,
         onhover,
+        distanceKm,
     }: {
         point: RecyclingPoint;
         selected?: boolean;
         onhover?: (slug: string | null) => void;
+        distanceKm?: number;
     } = $props();
+
+    const distLabel = $derived(
+        distanceKm === undefined
+            ? null
+            : distanceKm < 1
+              ? `${Math.round(distanceKm * 1000)} m`
+              : `${distanceKm.toFixed(1).replace('.', ',')} km`,
+    );
 </script>
 
 <article
@@ -26,6 +36,9 @@
         <h3>
             <a href="/punkt/{point.slug}">{point.name}</a>
         </h3>
+        {#if distLabel}
+            <span class="dist">{distLabel}</span>
+        {/if}
         {#if point.operator}
             <span class="operator">{point.operator}</span>
         {/if}
@@ -98,6 +111,19 @@
                 </li>
             {/each}
         </ul>
+    {/if}
+
+    {#if point.phone}
+        <a
+            class="call"
+            href="tel:{point.phone.replace(/\s+/g, '')}"
+            onclick={(e) => e.stopPropagation()}
+        >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            {point.phone}
+        </a>
     {/if}
 </article>
 
@@ -253,5 +279,30 @@
         border-radius: 50%;
         background: var(--chip-color);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    .dist {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--kompi-accent);
+        font-variant-numeric: tabular-nums;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    .call {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--kompi-accent);
+        background: var(--kompi-accent-subtle);
+        border: 1px solid var(--kompi-accent-muted);
+        border-radius: 8px;
+    }
+    .call:hover {
+        background: var(--kompi-accent-muted);
+        text-decoration: none;
     }
 </style>

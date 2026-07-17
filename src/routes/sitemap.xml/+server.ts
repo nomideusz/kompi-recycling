@@ -1,5 +1,6 @@
 import { getAllPoints } from '$lib/server/db/queries/points';
 import { POINTS } from '$lib/data';
+import { GUIDES } from '$lib/guides';
 import type { RequestHandler } from './$types';
 
 const BASE = 'https://recycling.kompi.pl';
@@ -35,6 +36,11 @@ export const GET: RequestHandler = async () => {
 
 	const urls: string[] = [];
 	urls.push(renderUrl(BASE, 'daily', '1.0', buildDate));
+
+	urls.push(renderUrl(`${BASE}/poradnik`, 'monthly', '0.8', buildDate));
+	for (const g of GUIDES) {
+		urls.push(renderUrl(`${BASE}/poradnik/${g.slug}`, 'monthly', '0.8', buildDate));
+	}
 
 	for (const p of points) {
 		urls.push(renderUrl(`${BASE}/punkt/${p.slug}`, 'weekly', '0.7', buildDate));

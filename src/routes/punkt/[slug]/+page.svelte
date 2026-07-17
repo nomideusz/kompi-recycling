@@ -1,9 +1,13 @@
 <script lang="ts">
     import { CATEGORIES_BY_ID } from "$lib/categories";
     import { TAKEBACKS_BY_ID } from "$lib/takebacks";
+    import { GUIDE_BY_CATEGORY } from "$lib/guides";
 
     let { data } = $props();
     const p = $derived(data.point);
+    const guide = $derived(
+        p.categories.map((c) => GUIDE_BY_CATEGORY[c]).find(Boolean) ?? null,
+    );
 
     const mapsUrl = $derived(
         `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`,
@@ -74,8 +78,6 @@
             ],
         },
     ]);
-
-    import KompiLogo from "$lib/images/logo/logo-kompi-white.png";
 </script>
 
 <svelte:head>
@@ -98,39 +100,6 @@
     <meta name="twitter:description" content={description} />
     {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
-
-<div class="topbar">
-    <div class="topbar-inner">
-        <a class="brand" href="/">
-            <img
-                src={KompiLogo}
-                alt="Kompi"
-                class="brand-logo"
-                width="100"
-                height="30"
-            />
-            <span class="brand-word">
-                <span class="brand-tag">recycling</span>
-            </span>
-        </a>
-        <a class="back" href="/">
-            <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-            >
-                <path d="m15 18-6-6 6-6" />
-            </svg>
-            Wróć do mapy
-        </a>
-    </div>
-</div>
 
 <div class="container">
     <article class="inner">
@@ -266,6 +235,34 @@
             {/if}
         </div>
 
+        {#if p.takebackType === "municipal"}
+            <p class="caveat">
+                PSZOK przyjmuje odpady od mieszkańców swojej gminy; limity
+                ilościowe mogą się różnić między gminami — zadzwoń lub
+                sprawdź stronę przed wizytą.
+            </p>
+        {/if}
+        {#if !p.phone}
+            <p class="no-phone">
+                Brak numeru telefonu w naszej bazie —
+                {#if p.website}
+                    sprawdź
+                    <a
+                        href={p.website}
+                        target="_blank"
+                        rel="noopener noreferrer">stronę punktu</a
+                    >.
+                {:else}
+                    zajrzyj na stronę swojej gminy.
+                {/if}
+            </p>
+        {/if}
+        {#if guide}
+            <p class="guide-link">
+                Zobacz też: <a href="/poradnik/{guide.slug}">{guide.title} — zasady oddawania</a>
+            </p>
+        {/if}
+
         <div class="grid">
             <section class="details">
                 <div class="panel">
@@ -352,76 +349,45 @@
                 </a>
             </p>
         </footer>
+
+        {#if data.alternatives.length > 0}
+            <section class="alts" aria-label="Punkty w pobliżu">
+                <h2>Inne punkty w pobliżu</h2>
+                <ul>
+                    {#each data.alternatives as alt (alt.slug)}
+                        <li>
+                            <a href="/punkt/{alt.slug}">
+                                <span class="alt-name">{alt.name}</span>
+                                <span class="alt-meta"
+                                    >{alt.address}, {alt.city}</span
+                                >
+                                <span class="alt-dist"
+                                    >{alt.distanceKm.toLocaleString(
+                                        "pl-PL",
+                                    )} km</span
+                                >
+                            </a>
+                        </li>
+                    {/each}
+                </ul>
+            </section>
+        {/if}
     </article>
 </div>
 
-<style>
-    .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: var(--kompi-surface);
-        border-bottom: 1px solid var(--kompi-border);
-        backdrop-filter: saturate(180%) blur(8px);
-    }
-    .topbar-inner {
-        max-width: var(--kompi-container);
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--kompi-space-4);
-        padding: 10px var(--kompi-gutter);
-    }
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--kompi-text);
-        text-decoration: none;
-    }
-    .brand:hover {
-        text-decoration: none;
-        color: var(--kompi-text);
-    }
-    .brand-logo {
-        display: block;
-        height: 30px;
-        width: auto;
-        object-fit: contain;
-    }
-    .brand-word {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.15;
-        border-left: 1px solid var(--kompi-border-strong);
-        padding-left: 12px;
-    }
-    .brand-tag {
-        font-size: 16px;
-        color: var(--kompi-text-2);
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
-    .back {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: var(--kompi-text-sm);
-        font-weight: 500;
-        color: var(--kompi-text-2);
-        padding: 6px 10px;
-        border-radius: var(--kompi-radius-sm);
-        transition:
-            background var(--kompi-dur-fast) var(--kompi-ease),
-            color var(--kompi-dur-fast) var(--kompi-ease);
-    }
-    .back:hover {
-        background: var(--kompi-bg);
-        color: var(--kompi-accent);
-        text-decoration: none;
-    }
+<div class="sticky-actions">
+    <a
+        class="btn btn-primary"
+        href={directionsUrl}
+        target="_blank"
+        rel="noopener noreferrer">Wyznacz trasę</a
+    >
+    {#if p.phone}
+        <a class="btn" href="tel:{p.phone.replace(/\s+/g, '')}">Zadzwoń</a>
+    {/if}
+</div>
 
+<style>
     .container {
         flex: 1;
         padding: var(--kompi-space-10) var(--kompi-gutter) var(--kompi-space-12);
@@ -504,6 +470,25 @@
         flex-wrap: wrap;
         gap: var(--kompi-space-2);
         margin-bottom: var(--kompi-space-10);
+    }
+    .caveat {
+        margin: 16px 0 0;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--kompi-text-2);
+        background: var(--kompi-accent-subtle);
+        border: 1px solid var(--kompi-accent-muted);
+        border-radius: 12px;
+    }
+    .no-phone {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--kompi-text-3);
+    }
+    .guide-link {
+        margin: 12px 0 0;
+        font-size: 13px;
     }
     .btn {
         display: inline-flex;
@@ -674,5 +659,79 @@
     .report {
         margin: 0;
         color: var(--kompi-text-3);
+    }
+
+    .alts {
+        margin-top: 32px;
+    }
+    .alts h2 {
+        font-size: 18px;
+        margin: 0 0 12px;
+    }
+    .alts ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+    }
+    .alts a {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "name dist" "meta dist";
+        gap: 2px 12px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--kompi-border);
+        border-radius: 12px;
+        color: var(--kompi-text);
+        text-decoration: none;
+    }
+    .alts a:hover {
+        border-color: var(--kompi-accent);
+    }
+    .alt-name {
+        grid-area: name;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .alt-meta {
+        grid-area: meta;
+        font-size: 12px;
+        color: var(--kompi-text-3);
+    }
+    .alt-dist {
+        grid-area: dist;
+        align-self: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--kompi-accent);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .sticky-actions {
+        display: none;
+    }
+    @media (max-width: 720px) {
+        .inner {
+            padding-bottom: 88px;
+        }
+        .sticky-actions {
+            display: flex;
+            gap: 10px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 30;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            background: rgba(9, 9, 11, 0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--kompi-border);
+        }
+        .sticky-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
     }
 </style>

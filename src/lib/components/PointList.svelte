@@ -6,10 +6,12 @@
     points,
     selectedSlug = null,
     onhover,
+    distanceKm = null,
   }: {
     points: RecyclingPoint[];
     selectedSlug?: string | null;
     onhover?: (slug: string | null) => void;
+    distanceKm?: Map<string, number> | null;
   } = $props();
 
   let listEl: HTMLUListElement | undefined = $state();
@@ -34,6 +36,7 @@
           point={p}
           selected={p.slug === selectedSlug}
           {onhover}
+          distanceKm={distanceKm?.get(p.slug)}
         />
       </li>
     {/each}

@@ -6,6 +6,10 @@
     import PointList from "$lib/components/PointList.svelte";
     import Pagination from "$lib/components/Pagination.svelte";
     import ProximityPill from "$lib/components/ProximityPill.svelte";
+    import ItemSearch from "$lib/components/ItemSearch.svelte";
+    import ItemTiles from "$lib/components/ItemTiles.svelte";
+    import RulesBox from "$lib/components/RulesBox.svelte";
+    import { ITEMS_BY_ID, type WasteItem } from "$lib/items";
     import {
         buildDistanceIndex,
         buildHaystackIndex,
@@ -25,6 +29,7 @@
     } from "$lib/types";
     import { browser } from "$app/environment";
     import { replaceState } from "$app/navigation";
+    import { tick } from "svelte";
 
     let { data } = $props();
 
@@ -47,6 +52,29 @@
     let locateError = $state<string | null>(null);
     let page = $state(1);
     let mapBounds = $state<Bbox | null>(null);
+    let selectedItemId = $state<string | null>(null);
+    const selectedItem = $derived(
+        selectedItemId ? (ITEMS_BY_ID[selectedItemId] ?? null) : null,
+    );
+
+    // The rules box only makes sense while the item's categories are still
+    // part of the active filter — invalidate the item when they diverge.
+    $effect(() => {
+        if (!selectedItem) return;
+        if (!selectedItem.categories.every((c) => categories.has(c))) {
+            selectedItemId = null;
+        }
+    });
+
+    function pickItem(item: WasteItem) {
+        selectedItemId = item.id;
+        categories = new Set(item.categories);
+    }
+
+    function clearItem() {
+        selectedItemId = null;
+        categories = new Set();
+    }
 
     const DEFAULT_RADIUS_KM = 10;
 
@@ -62,12 +90,22 @@
             .get("cat")
             ?.split(",")
             .filter((c): c is CategoryId => c in CATEGORIES_BY_ID);
-        if (cat && cat.length > 0) categories = new Set(cat);
+        const catApplied = cat !== undefined && cat.length > 0;
+        if (catApplied) categories = new Set(cat);
         const tb = sp
             .get("tb")
             ?.split(",")
             .filter((t): t is TakebackType => t in TAKEBACKS_BY_ID);
         if (tb && tb.length > 0) takebackTypes = new Set(tb);
+        const itemParam = sp.get("item");
+        if (itemParam && itemParam in ITEMS_BY_ID) {
+            selectedItemId = itemParam;
+            // A refined `cat` param in a shared link takes precedence over
+            // the item's default categories — don't clobber it.
+            if (!catApplied) {
+                categories = new Set(ITEMS_BY_ID[itemParam].categories);
+            }
+        }
         const lat = Number.parseFloat(sp.get("lat") ?? "");
         const lng = Number.parseFloat(sp.get("lng") ?? "");
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
@@ -120,6 +158,22 @@
         sortByDistance(filtered, anchor, distanceIndex),
     );
 
+    // When a radius filter empties the list, show the nearest matches beyond
+    // the radius instead of a dead end.
+    const nearestFallback = $derived(
+        sortedFiltered.length === 0 && anchor !== null && radiusKm !== null
+            ? sortByDistance(
+                  filterPoints(
+                      points,
+                      { query, categories, takebackTypes, city: null, anchor, radiusKm: null },
+                      { haystack: haystackIndex, distanceKm: distanceIndex },
+                  ),
+                  anchor,
+                  distanceIndex,
+              ).slice(0, 5)
+            : [],
+    );
+
     const pageCount = $derived(
         Math.max(1, Math.ceil(sortedFiltered.length / PAGE_SIZE)),
     );
@@ -137,7 +191,8 @@
     );
 
     const showResults = $derived(
-        query.trim().length > 0 ||
+        selectedItemId !== null ||
+            query.trim().length > 0 ||
             categories.size > 0 ||
             takebackTypes.size > 0 ||
             anchor !== null,
@@ -239,7 +294,7 @@
                 '@type': 'Audience',
                 audienceType: 'Mieszkańcy Polski oddający elektroodpady',
             },
-            description: `Katalog ${totalCount.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: ZSEiE, baterie, akumulatory, świetlówki.`,
+            description: `Katalog ${totalCount.toLocaleString('pl-PL')} punktów zbiórki w ${cityCount.toLocaleString('pl-PL')} miastach: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia, leki, wielkogabaryty, tekstylia.`,
         },
     ]);
 
@@ -250,6 +305,7 @@
         void takebackTypes;
         void anchor;
         void radiusKm;
+        void selectedItemId;
         page = 1;
     });
 
@@ -263,6 +319,7 @@
         if (categories.size > 0) sp.set("cat", [...categories].join(","));
         if (takebackTypes.size > 0)
             sp.set("tb", [...takebackTypes].join(","));
+        if (selectedItemId) sp.set("item", selectedItemId);
         if (anchor && anchor.source === "address") {
             sp.set("lat", anchor.lat.toFixed(5));
             sp.set("lng", anchor.lng.toFixed(5));
@@ -300,6 +357,19 @@
         } else {
             mapRef.clearAnchor();
         }
+    });
+
+    // Hand keyboard/AT focus to the results overlay when it appears —
+    // otherwise focus silently falls to <body> behind it.
+    let wasShowingResults = false;
+    $effect(() => {
+        const showing = showResults;
+        if (showing && !wasShowingResults && browser) {
+            tick().then(() =>
+                document.getElementById("results-top")?.focus(),
+            );
+        }
+        wasShowingResults = showing;
     });
 
     function locateMe() {
@@ -394,39 +464,93 @@
 
 <svelte:head>
     <title
-        >recycling.kompi.pl — mapa punktów zbiórki elektroodpadów w Polsce</title
+        >recycling.kompi.pl — gdzie oddać elektroodpady, baterie, oleje i opony</title
     >
     <meta
         name="description"
-        content="Mapa punktów zbiórki zużytego sprzętu elektronicznego (ZSEiE), baterii, akumulatorów i świetlówek w Polsce. Znajdź najbliższy punkt."
+        content="Znajdź najbliższy punkt zbiórki: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia, leki, wielkogabaryty i tekstylia. Ponad 30 000 punktów w całej Polsce."
     />
     <meta
         name="keywords"
-        content="punkty zbiórki elektroodpadów, recykling elektroniki, ZSEiE, zbiórka baterii, zużyty sprzęt AGD, świetlówki, PSZOK, mapa Polska"
+        content="punkty zbiórki elektroodpadów, recykling elektroniki, ZSEiE, zbiórka baterii, zużyty sprzęt AGD, świetlówki, PSZOK, mapa Polska, akumulatory, olej silnikowy, opony, przeterminowane leki, chemikalia, wielkogabaryty, tekstylia"
     />
     <link rel="canonical" href="https://recycling.kompi.pl/" />
     <link rel="alternate" hreflang="pl-PL" href="https://recycling.kompi.pl/" />
     <link rel="alternate" hreflang="x-default" href="https://recycling.kompi.pl/" />
     <meta
         property="og:title"
-        content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów w Polsce"
+        content="recycling.kompi.pl — gdzie oddać elektroodpady, baterie, oleje i opony"
     />
     <meta
         property="og:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek. Ponad {totalCount.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
+        content="Znajdź najbliższy punkt zbiórki: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia, leki i tekstylia. Ponad {totalCount.toLocaleString('pl-PL')} lokalizacji w {cityCount.toLocaleString('pl-PL')} miastach."
     />
     <meta property="og:url" content="https://recycling.kompi.pl/" />
     <meta
         name="twitter:title"
-        content="recycling.kompi.pl — mapa punktów zbiórki elektroodpadów"
+        content="recycling.kompi.pl — gdzie oddać elektroodpady, baterie, oleje i opony"
     />
     <meta
         name="twitter:description"
-        content="Znajdź najbliższy punkt zbiórki zużytego sprzętu, baterii i świetlówek w Polsce."
+        content="Znajdź najbliższy punkt zbiórki: elektroodpady, baterie, akumulatory, oleje, opony, chemikalia i leki."
     />
     {@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
 
+{#if !showResults}
+    <div class="landing">
+        <section class="hero">
+            <h1>Gdzie oddać to, czego nie potrzebujesz?</h1>
+            <p class="sub">
+                {totalCount.toLocaleString("pl-PL")} punktów zbiórki w
+                {cityCount.toLocaleString("pl-PL")} miastach w całej Polsce —
+                elektroodpady, baterie, akumulatory, oleje, opony, leki i więcej.
+            </p>
+            <div class="hero-search">
+                <ItemSearch onpick={pickItem} onfreetext={(q) => (query = q)} />
+                <div class="hero-location">
+                    <SearchBox
+                        bind:query
+                        results={suggestions}
+                        loading={geocoding}
+                        onselect={handleSelect}
+                        placeholder="Miasto lub adres…"
+                    />
+                    <button
+                        type="button"
+                        class="locate-cta"
+                        disabled={locating}
+                        onclick={locateMe}
+                    >
+                        {locating ? "Lokalizuję…" : "📍 Użyj mojej lokalizacji"}
+                    </button>
+                </div>
+            </div>
+            <h2 class="tiles-h">Popularne</h2>
+            <ItemTiles onpick={pickItem} />
+        </section>
+
+        <section class="how">
+            <h2>Jak to działa?</h2>
+            <ol>
+                <li><strong>Wybierz rzecz</strong> — powiedz, czego chcesz się pozbyć.</li>
+                <li><strong>Podaj lokalizację</strong> — adres, miasto albo GPS.</li>
+                <li><strong>Jedź lub zadzwoń</strong> — dostaniesz adresy, godziny i zasady.</li>
+            </ol>
+        </section>
+
+        <section class="edu">
+            <h2>Poradnik recyklingu</h2>
+            <p>
+                Nie wiesz, czy PSZOK przyjmie twoje opony, albo co zrobić z
+                przeterminowanymi lekami? Sprawdź zasady w prostym języku.
+            </p>
+            <a class="edu-cta" href="/poradnik">Przejdź do poradnika →</a>
+        </section>
+    </div>
+{/if}
+
+{#if showResults}
 <div class="map-app">
     <div class="map-layer" aria-label="Mapa punktów zbiórki">
         <RecyclingMap
@@ -478,6 +602,19 @@
                         ><strong>{cityCount.toLocaleString("pl-PL")}</strong> miast</span
                     >
                 </div>
+                <button
+                    type="button"
+                    class="new-search"
+                    onclick={() => {
+                        clearItem();
+                        query = "";
+                        takebackTypes = new Set();
+                        anchor = null;
+                        radiusKm = null;
+                    }}
+                >
+                    ← Nowe wyszukiwanie
+                </button>
             </div>
 
             <div class="takeback-island">
@@ -553,7 +690,11 @@
             {#if showResults}
                 <div class="results-island" aria-label="Wyniki">
                     <div class="results-head">
-                        <div class="results-head-line">
+                        <div
+                            class="results-head-line"
+                            id="results-top"
+                            tabindex="-1"
+                        >
                             <strong
                                 >{sortedFiltered.length.toLocaleString(
                                     "pl-PL",
@@ -580,7 +721,7 @@
                                 type="button"
                                 class="results-clear"
                                 onclick={() => {
-                                    categories = new Set();
+                                    clearItem();
                                     takebackTypes = new Set();
                                     anchor = null;
                                     radiusKm = null;
@@ -591,12 +732,42 @@
                             </button>
                         {/if}
                     </div>
+                    {#if selectedItem}
+                        <div class="rules-slot">
+                            <RulesBox item={selectedItem} />
+                        </div>
+                    {/if}
                     <div class="results-scroll">
-                        <PointList
-                            points={pagedPoints}
-                            {selectedSlug}
-                            onhover={(slug) => (selectedSlug = slug)}
-                        />
+                        {#if sortedFiltered.length === 0 && nearestFallback.length > 0}
+                            <p class="fallback-note">
+                                Brak punktów w promieniu {radiusKm} km.
+                                Najbliższe punkty poza promieniem:
+                            </p>
+                            <PointList
+                                points={nearestFallback}
+                                {selectedSlug}
+                                onhover={(slug) => (selectedSlug = slug)}
+                                distanceKm={distanceIndex}
+                            />
+                            <button
+                                type="button"
+                                class="widen"
+                                onclick={() =>
+                                    (radiusKm = Math.min(
+                                        100,
+                                        (radiusKm ?? 10) * 2.5,
+                                    ))}
+                            >
+                                Powiększ promień wyszukiwania
+                            </button>
+                        {:else}
+                            <PointList
+                                points={pagedPoints}
+                                {selectedSlug}
+                                onhover={(slug) => (selectedSlug = slug)}
+                                distanceKm={distanceIndex}
+                            />
+                        {/if}
                     </div>
                     <Pagination
                         bind:page
@@ -659,17 +830,30 @@
         </div>
     {/if}
 </div>
+{/if}
 
 <style>
     .map-app {
-        position: absolute;
+        position: fixed;
         inset: 0;
+        z-index: 40;
     }
 
     .map-layer {
         position: absolute;
         inset: 0;
         z-index: 0;
+    }
+
+    /* While the results overlay is mounted it covers the entire viewport,
+       header and footer included (by design). Contain the page behind it:
+       no phantom scroll, and the hidden chrome must not stay focusable. */
+    :global(body:has(.map-app)) {
+        overflow: hidden;
+    }
+    :global(body:has(.map-app) .site-header),
+    :global(body:has(.map-app) .site-footer) {
+        visibility: hidden;
     }
 
     .controls {
@@ -768,6 +952,18 @@
     .brand-sep {
         color: var(--kompi-border-strong);
         opacity: 0.5;
+    }
+    .new-search {
+        background: transparent;
+        border: 0;
+        color: var(--kompi-text-3);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .new-search:hover {
+        color: var(--kompi-accent);
     }
 
     .search-island {
@@ -873,6 +1069,11 @@
         gap: 8px;
         min-width: 0;
     }
+    /* Focus target for the landing→results morph — not an interactive
+       element, so no visible focus ring needed. */
+    #results-top {
+        outline: none;
+    }
     .results-head strong {
         color: var(--kompi-text);
         font-weight: 700;
@@ -909,6 +1110,11 @@
         color: var(--kompi-danger);
     }
 
+    .rules-slot {
+        padding: 12px 16px 0;
+        flex-shrink: 0;
+    }
+
     .results-scroll {
         flex: 1;
         min-height: 0;
@@ -917,6 +1123,23 @@
         padding: 16px;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+
+    .fallback-note {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: var(--kompi-warning);
+    }
+    .widen {
+        margin-top: 12px;
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--kompi-accent-muted);
+        background: var(--kompi-accent-subtle);
+        color: var(--kompi-accent);
+        font-weight: 700;
+        cursor: pointer;
     }
 
     .results-scroll::-webkit-scrollbar {
@@ -1114,9 +1337,9 @@
             top: 12px;
             left: 12px;
             right: 12px;
-            bottom: 12px;
+            bottom: 0;
             grid-template-columns: minmax(0, 1fr);
-            gap: 12px;
+            gap: 10px;
         }
         .chips-island {
             align-self: stretch;
@@ -1124,6 +1347,28 @@
         }
         .left-col {
             order: 1;
+            min-height: 0;
+            flex: 1;
+        }
+        /* Results become a bottom sheet: map stays visible above. */
+        .results-island {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            max-height: 48dvh;
+            border-radius: 16px 16px 0 0;
+            border-bottom: 0;
+        }
+        .results-island::before {
+            content: "";
+            display: block;
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.25);
+            margin: 8px auto 0;
+            flex-shrink: 0;
         }
         .brand-tag {
             display: none;
@@ -1134,7 +1379,7 @@
         }
         .toast {
             top: auto;
-            bottom: 20px;
+            bottom: 50dvh;
             left: 12px;
             right: 12px;
             max-width: none;
@@ -1144,5 +1389,115 @@
         .results-island {
             border-radius: 12px;
         }
+        .results-island {
+            border-radius: 16px 16px 0 0;
+        }
+        .truncation-hint {
+            bottom: calc(48dvh + 12px);
+        }
+    }
+
+    .landing {
+        max-width: 1100px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 56px;
+    }
+    .hero h1 {
+        font-size: clamp(28px, 5vw, 44px);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 12px;
+    }
+    .hero .sub {
+        color: var(--kompi-text-3);
+        font-size: 16px;
+        max-width: 640px;
+        margin: 0 0 28px;
+    }
+    .hero-search {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 640px;
+        margin-bottom: 36px;
+    }
+    .hero-location {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .hero-location > :global(*:first-child) {
+        flex: 1;
+    }
+    .locate-cta {
+        flex-shrink: 0;
+        padding: 0 18px;
+        border-radius: 14px;
+        border: 1px solid var(--kompi-border-strong);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--kompi-text-2);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .locate-cta:hover {
+        border-color: var(--kompi-accent);
+        color: var(--kompi-accent);
+    }
+    .tiles-h {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--kompi-text-4);
+        margin: 0 0 12px;
+    }
+    .how ol {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        list-style: none;
+        counter-reset: step;
+        padding: 0;
+        margin: 16px 0 0;
+    }
+    .how li {
+        counter-increment: step;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--kompi-border);
+        border-radius: 14px;
+        color: var(--kompi-text-2);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .how li::before {
+        content: counter(step);
+        display: block;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--kompi-accent-muted);
+        color: var(--kompi-accent);
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        margin-bottom: 10px;
+    }
+    .how h2, .edu h2 {
+        font-size: 22px;
+        margin: 0;
+    }
+    .edu p {
+        color: var(--kompi-text-3);
+        max-width: 560px;
+        margin: 10px 0 16px;
+    }
+    .edu-cta {
+        font-weight: 700;
+        color: var(--kompi-accent);
     }
 </style>
