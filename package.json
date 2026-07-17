@@ -10,7 +10,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"db:push": "drizzle-kit push"
+		"db:push": "drizzle-kit push",
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-netlify": "^6.0.4",
@@ -23,7 +24,8 @@
 		"svelte-check": "^4.4.4",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"vite": "^7.3.1"
+		"vite": "^7.3.1",
+		"vitest": "^4.1.10"
 	},
 	"dependencies": {
 		"@googlemaps/markerclusterer": "^2.6.2",
