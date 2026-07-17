@@ -8,6 +8,7 @@
     import ProximityPill from "$lib/components/ProximityPill.svelte";
     import ItemSearch from "$lib/components/ItemSearch.svelte";
     import ItemTiles from "$lib/components/ItemTiles.svelte";
+    import RulesBox from "$lib/components/RulesBox.svelte";
     import { ITEMS_BY_ID, type WasteItem } from "$lib/items";
     import {
         buildDistanceIndex,
@@ -140,6 +141,22 @@
 
     const sortedFiltered = $derived(
         sortByDistance(filtered, anchor, distanceIndex),
+    );
+
+    // When a radius filter empties the list, show the nearest matches beyond
+    // the radius instead of a dead end.
+    const nearestFallback = $derived(
+        sortedFiltered.length === 0 && anchor !== null && radiusKm !== null
+            ? sortByDistance(
+                  filterPoints(
+                      points,
+                      { query, categories, takebackTypes, city: null, anchor, radiusKm: null },
+                      { haystack: haystackIndex, distanceKm: distanceIndex },
+                  ),
+                  anchor,
+                  distanceIndex,
+              ).slice(0, 5)
+            : [],
     );
 
     const pageCount = $derived(
@@ -684,12 +701,40 @@
                             </button>
                         {/if}
                     </div>
+                    {#if selectedItem}
+                        <div class="rules-slot">
+                            <RulesBox item={selectedItem} />
+                        </div>
+                    {/if}
                     <div class="results-scroll">
-                        <PointList
-                            points={pagedPoints}
-                            {selectedSlug}
-                            onhover={(slug) => (selectedSlug = slug)}
-                        />
+                        {#if sortedFiltered.length === 0 && nearestFallback.length > 0}
+                            <p class="fallback-note">
+                                Brak punktów w promieniu {radiusKm} km.
+                                Najbliższe punkty poza promieniem:
+                            </p>
+                            <PointList
+                                points={nearestFallback}
+                                {selectedSlug}
+                                onhover={(slug) => (selectedSlug = slug)}
+                            />
+                            <button
+                                type="button"
+                                class="widen"
+                                onclick={() =>
+                                    (radiusKm = Math.min(
+                                        100,
+                                        (radiusKm ?? 10) * 2.5,
+                                    ))}
+                            >
+                                Powiększ promień wyszukiwania
+                            </button>
+                        {:else}
+                            <PointList
+                                points={pagedPoints}
+                                {selectedSlug}
+                                onhover={(slug) => (selectedSlug = slug)}
+                            />
+                        {/if}
                     </div>
                     <Pagination
                         bind:page
@@ -1027,6 +1072,11 @@
         color: var(--kompi-danger);
     }
 
+    .rules-slot {
+        padding: 12px 16px 0;
+        flex-shrink: 0;
+    }
+
     .results-scroll {
         flex: 1;
         min-height: 0;
@@ -1035,6 +1085,23 @@
         padding: 16px;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+
+    .fallback-note {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: var(--kompi-warning, #eab308);
+    }
+    .widen {
+        margin-top: 12px;
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--kompi-accent-muted);
+        background: var(--kompi-accent-subtle);
+        color: var(--kompi-accent);
+        font-weight: 700;
+        cursor: pointer;
     }
 
     .results-scroll::-webkit-scrollbar {
