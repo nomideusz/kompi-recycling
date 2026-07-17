@@ -1,10 +1,10 @@
 /**
- * One-off: apply drizzle/backfill_takeback_type.sql to the configured Turso DB.
+ * Apply a SQL backfill from drizzle/ to the configured Turso DB.
  *
- *   pnpm tsx scripts/run-backfill.ts
+ *   pnpm tsx scripts/run-backfill.ts [backfill_file.sql]
  *
- * Reads TURSO_DATABASE_URL + TURSO_AUTH_TOKEN from .env, runs each UPDATE in
- * the SQL file, and reports rows affected so you can sanity-check the spread.
+ * Defaults to backfill_takeback_type.sql. Reads TURSO_DATABASE_URL +
+ * TURSO_AUTH_TOKEN from .env, runs each UPDATE, and reports rows affected.
  */
 import 'dotenv/config';
 import { readFileSync } from 'node:fs';
@@ -13,7 +13,8 @@ import { dirname, resolve } from 'node:path';
 import { createClient } from '@libsql/client';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const sqlPath = resolve(here, '..', 'drizzle', 'backfill_takeback_type.sql');
+const sqlFile = process.argv[2] ?? 'backfill_takeback_type.sql';
+const sqlPath = resolve(here, '..', 'drizzle', sqlFile);
 
 const url = process.env.TURSO_DATABASE_URL;
 const authToken = process.env.TURSO_AUTH_TOKEN;
@@ -33,11 +34,14 @@ const statements = raw
 
 const client = createClient({ url, authToken });
 
-const before = await client.execute(
-  `SELECT takeback_type, COUNT(*) AS n FROM recycling_points GROUP BY takeback_type ORDER BY n DESC`,
-);
-console.log('Before:');
-for (const row of before.rows) console.log(`  ${row.takeback_type}: ${row.n}`);
+const summarize = async (label: string) => {
+  const rs = await client.execute(
+    `SELECT takeback_type, COUNT(*) AS n, SUM(length(categories_json) - length(replace(categories_json, ',', ''))) + COUNT(*) AS cat_entries FROM recycling_points GROUP BY takeback_type ORDER BY n DESC`,
+  );
+  console.log(label);
+  for (const row of rs.rows) console.log(`  ${row.takeback_type}: ${row.n} rows, ${row.cat_entries} category entries`);
+};
+await summarize('Before:');
 
 let total = 0;
 for (const sql of statements) {
@@ -46,10 +50,6 @@ for (const sql of statements) {
   console.log(`  rowsAffected=${rs.rowsAffected ?? 0}  -- ${sql.slice(0, 60).replace(/\s+/g, ' ')}…`);
 }
 
-const after = await client.execute(
-  `SELECT takeback_type, COUNT(*) AS n FROM recycling_points GROUP BY takeback_type ORDER BY n DESC`,
-);
-console.log(`\nAfter (total updates: ${total}):`);
-for (const row of after.rows) console.log(`  ${row.takeback_type}: ${row.n}`);
+await summarize(`\nAfter (total updates: ${total}):`);
 
 await client.close();
