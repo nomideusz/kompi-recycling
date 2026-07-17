@@ -767,6 +767,17 @@
         z-index: 0;
     }
 
+    /* While the results overlay is mounted it covers the entire viewport,
+       header and footer included (by design). Contain the page behind it:
+       no phantom scroll, and the hidden chrome must not stay focusable. */
+    :global(body:has(.map-app)) {
+        overflow: hidden;
+    }
+    :global(body:has(.map-app) .site-header),
+    :global(body:has(.map-app) .site-footer) {
+        visibility: hidden;
+    }
+
     .controls {
         position: absolute;
         top: 20px;
