@@ -1,9 +1,13 @@
 <script lang="ts">
     import { CATEGORIES_BY_ID } from "$lib/categories";
     import { TAKEBACKS_BY_ID } from "$lib/takebacks";
+    import { GUIDE_BY_CATEGORY } from "$lib/guides";
 
     let { data } = $props();
     const p = $derived(data.point);
+    const guide = $derived(
+        p.categories.map((c) => GUIDE_BY_CATEGORY[c]).find(Boolean) ?? null,
+    );
 
     const mapsUrl = $derived(
         `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`,
@@ -253,6 +257,11 @@
                 {/if}
             </p>
         {/if}
+        {#if guide}
+            <p class="guide-link">
+                Zobacz też: <a href="/poradnik/{guide.slug}">{guide.title} — zasady oddawania</a>
+            </p>
+        {/if}
 
         <div class="grid">
             <section class="details">
@@ -476,6 +485,10 @@
         margin: 12px 0 0;
         font-size: 13px;
         color: var(--kompi-text-3);
+    }
+    .guide-link {
+        margin: 12px 0 0;
+        font-size: 13px;
     }
     .btn {
         display: inline-flex;
