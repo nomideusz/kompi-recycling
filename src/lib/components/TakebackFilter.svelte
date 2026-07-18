@@ -45,10 +45,10 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    background: rgba(24, 24, 27, 0.7);
+    background: var(--kompi-glass, var(--kompi-surface));
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--kompi-border);
     border-radius: 6px;
     color: var(--kompi-text-3);
     font-size: 12px;
@@ -60,10 +60,10 @@
   .chip:hover {
     border-color: var(--tb-color);
     color: var(--kompi-text-2);
-    background: rgba(34, 34, 38, 0.85);
+    background: var(--kompi-surface);
   }
   .chip.on {
-    background: color-mix(in srgb, var(--tb-color) 20%, rgba(24, 24, 27, 0.85));
+    background: color-mix(in srgb, var(--tb-color) 12%, var(--kompi-surface));
     border-color: var(--tb-color);
     color: var(--kompi-text);
     box-shadow: inset 0 0 0 1px var(--tb-color);
@@ -73,7 +73,6 @@
     height: 6px;
     border-radius: 50%;
     background: var(--tb-color);
-    box-shadow: 0 0 4px var(--tb-color);
   }
   .label {
     line-height: 1;

@@ -106,12 +106,12 @@
     align-items: center;
     gap: 8px;
     padding: 6px 6px 6px 12px;
-    background: rgba(24, 24, 27, 0.92);
+    background: var(--kompi-glass, var(--kompi-surface));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--kompi-border);
     border-radius: 999px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--kompi-shadow-sm);
     color: var(--kompi-text-2);
     font-size: 12px;
     font-weight: 600;
@@ -135,8 +135,8 @@
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--kompi-bg-subtle);
+    border: 1px solid var(--kompi-border);
     color: var(--kompi-text);
     font: inherit;
     font-size: 12px;
@@ -147,7 +147,7 @@
     font-variant-numeric: tabular-nums;
   }
   .pill-radius:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--kompi-bg);
     border-color: var(--kompi-accent);
   }
   .pill-close {
@@ -155,7 +155,7 @@
     place-items: center;
     width: 24px;
     height: 24px;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--kompi-bg-subtle);
     border: 0;
     color: var(--kompi-text-3);
     border-radius: 50%;
@@ -164,7 +164,7 @@
     transition: all 0.15s ease;
   }
   .pill-close:hover {
-    background: rgba(255, 0, 60, 0.18);
+    background: rgba(220, 38, 38, 0.1);
     color: var(--kompi-danger);
   }
 
@@ -173,13 +173,11 @@
     top: calc(100% + 6px);
     right: 0;
     min-width: 140px;
-    background: rgba(24, 24, 27, 0.98);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--kompi-surface);
+    border: 1px solid var(--kompi-border);
     border-radius: 12px;
     padding: 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--kompi-shadow-lg);
     z-index: 30;
     display: grid;
     gap: 2px;
@@ -203,7 +201,7 @@
     font-variant-numeric: tabular-nums;
   }
   .menu-item:hover {
-    background: rgba(57, 255, 20, 0.08);
+    background: var(--kompi-bg-subtle);
     color: var(--kompi-text);
   }
   .menu-item.on {

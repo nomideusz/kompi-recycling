@@ -2,14 +2,19 @@
     import RecyclingMap from "$lib/components/RecyclingMap.svelte";
     import CategoryFilter from "$lib/components/CategoryFilter.svelte";
     import TakebackFilter from "$lib/components/TakebackFilter.svelte";
-    import SearchBox from "$lib/components/SearchBox.svelte";
+    import SearchBox, {
+        type SearchBoxItem,
+    } from "$lib/components/SearchBox.svelte";
     import PointList from "$lib/components/PointList.svelte";
     import Pagination from "$lib/components/Pagination.svelte";
     import ProximityPill from "$lib/components/ProximityPill.svelte";
-    import ItemSearch from "$lib/components/ItemSearch.svelte";
-    import ItemTiles from "$lib/components/ItemTiles.svelte";
     import RulesBox from "$lib/components/RulesBox.svelte";
-    import { ITEMS_BY_ID, type WasteItem } from "$lib/items";
+    import {
+        ITEMS_BY_ID,
+        POPULAR_ITEMS,
+        matchItems,
+        type WasteItem,
+    } from "$lib/items";
     import {
         buildDistanceIndex,
         buildHaystackIndex,
@@ -41,6 +46,10 @@
     );
 
     let query = $state("");
+    // The landing search box is a pure navigator (yoga-style): typing only
+    // drives the suggestion dropdown; filter state changes on select/Enter.
+    // On the results view the box binds `query` directly and filters live.
+    let heroQuery = $state("");
     let categories = $state<Set<CategoryId>>(new Set());
     let takebackTypes = $state<Set<TakebackType>>(new Set());
     let anchor = $state<Anchor | null>(null);
@@ -123,7 +132,7 @@
         }
     }
 
-    import KompiLogo from "$lib/images/logo/logo-kompi-white.png";
+    import KompiLogo from "$lib/images/logo/logo-kompi.png";
 
     const PAGE_SIZE = 50;
 
@@ -186,10 +195,6 @@
     // the object form buildSuggestions expects. Reruns only on data change.
     const cityAggregates = $derived(data.cityAggregates.map(cityAggFromWire));
 
-    const suggestions = $derived(
-        buildSuggestions(points, query, cityAggregates),
-    );
-
     const showResults = $derived(
         selectedItemId !== null ||
             query.trim().length > 0 ||
@@ -197,6 +202,28 @@
             takebackTypes.size > 0 ||
             anchor !== null,
     );
+
+    // ── Unified suggestions: things first, then places ──
+    // One input understands items ("laptop"), cities, postal codes,
+    // operators and addresses — grouped like the yoga directory search.
+    const suggestQ = $derived(showResults ? query : heroQuery);
+
+    const itemSuggestions = $derived.by((): SearchBoxItem[] => {
+        const q = suggestQ.trim();
+        if (q.length < 2) return [];
+        return matchItems(q, 5).map((item) => ({
+            key: `item:${item.id}`,
+            icon: "item" as const,
+            text: item.name,
+            meta: CATEGORIES_BY_ID[item.categories[0]].label,
+            group: "Rzeczy",
+        }));
+    });
+
+    const suggestions = $derived([
+        ...itemSuggestions,
+        ...buildSuggestions(points, suggestQ, cityAggregates),
+    ]);
 
     // The moment any filter is active the user expects results from the
     // whole country, not just the tiles they've panned across — pull the
@@ -253,6 +280,10 @@
 
     const totalCount = $derived(data.totalCount);
     const cityCount = $derived(cityAggregates.length);
+
+    const topCities = $derived(
+        [...cityAggregates].sort((a, b) => b.count - a.count).slice(0, 12),
+    );
 
     const jsonLd = $derived([
         {
@@ -334,8 +365,9 @@
         return () => clearTimeout(timer);
     });
 
-    // Once the map exists, apply state restored from the URL: draw the
-    // anchor circle and pan to it, or pan to an exactly-matching city.
+    // Once the map exists, apply state restored from the URL or chosen on
+    // the landing: draw the anchor circle and pan to it, or pan to an
+    // exactly-matching city.
     function handleMapReady() {
         if (anchor) {
             mapRef?.setAnchor(anchor.lat, anchor.lng, radiusKm ?? null);
@@ -412,18 +444,33 @@
         store.fetchBbox(b);
     }
 
+    /** Pan to a city when the map exists; otherwise commit it as the query —
+     *  the map mounts, and handleMapReady pans to the exact-match centroid. */
+    function gotoCity(cityName: string) {
+        const agg = cityAggregates.find((c) => c.city === cityName);
+        if (agg && mapRef) {
+            // Pan to the city centroid; the map's idle event will trigger
+            // a bbox fetch so the points for that city stream in.
+            mapRef.panTo(agg.lat, agg.lng, 12);
+            query = "";
+        } else {
+            query = cityName;
+        }
+    }
+
     async function handleSelect(item: { key: string; text: string }) {
+        heroQuery = "";
+        if (item.key.startsWith("item:")) {
+            const id = item.key.slice("item:".length);
+            const it = ITEMS_BY_ID[id];
+            // Clear the typed text — the item's categories take over as the
+            // filter; leaving "laptop" as a haystack query would zero results.
+            query = "";
+            if (it) pickItem(it);
+            return;
+        }
         if (item.key.startsWith("city:")) {
-            const cityName = item.key.slice("city:".length);
-            const agg = cityAggregates.find((c) => c.city === cityName);
-            if (agg) {
-                // Pan to the city centroid; the map's idle event will trigger
-                // a bbox fetch so the points for that city stream in.
-                mapRef?.panTo(agg.lat, agg.lng, 12);
-                query = "";
-            } else {
-                query = cityName;
-            }
+            gotoCity(item.key.slice("city:".length));
             return;
         }
         if (item.key.startsWith("address:")) {
@@ -454,6 +501,17 @@
             return;
         }
         query = item.text;
+    }
+
+    /** Enter without an arrow-key selection — resolve like yoga: take the
+     *  top suggestion when there is one, otherwise commit the raw text. */
+    function handleSubmit(raw: string) {
+        if (suggestions.length > 0) {
+            void handleSelect(suggestions[0]);
+            return;
+        }
+        heroQuery = "";
+        query = raw;
     }
 
     function clearAnchor() {
@@ -499,54 +557,95 @@
 
 {#if !showResults}
     <div class="landing">
-        <section class="hero">
-            <h1>Gdzie oddać to, czego nie potrzebujesz?</h1>
-            <p class="sub">
-                {totalCount.toLocaleString("pl-PL")} punktów zbiórki w
-                {cityCount.toLocaleString("pl-PL")} miastach w całej Polsce —
-                elektroodpady, baterie, akumulatory, oleje, opony, leki i więcej.
-            </p>
-            <div class="hero-search">
-                <ItemSearch onpick={pickItem} onfreetext={(q) => (query = q)} />
-                <div class="hero-location">
-                    <SearchBox
-                        bind:query
-                        results={suggestions}
-                        loading={geocoding}
-                        onselect={handleSelect}
-                        placeholder="Miasto lub adres…"
-                    />
+        <p class="kicker">Katalog kompi.pl · recykling</p>
+        <h1 class="hero-title">Gdzie oddać to,<br />czego nie potrzebujesz?</h1>
+        <p class="sub">
+            {totalCount.toLocaleString("pl-PL")} punktów zbiórki w
+            {cityCount.toLocaleString("pl-PL")} miastach — elektroodpady,
+            baterie, oleje, opony, leki i więcej.
+        </p>
+
+        <div class="hero-search">
+            <SearchBox
+                bind:query={heroQuery}
+                results={suggestions}
+                loading={geocoding}
+                onselect={handleSelect}
+                onsubmit={handleSubmit}
+                placeholder="Np. laptop, baterie, Kraków, ul. Polna 5…"
+                ariaLabel="Szukaj rzeczy, miasta lub adresu"
+            >
+                {#snippet trailing()}
                     <button
                         type="button"
-                        class="locate-cta"
+                        class="locate-btn"
+                        class:locate-btn--active={locating}
+                        aria-label="Pokaż punkty w mojej okolicy"
+                        title={locateError ?? "Pokaż punkty w mojej okolicy"}
                         disabled={locating}
                         onclick={locateMe}
                     >
-                        {locating ? "Lokalizuję…" : "📍 Użyj mojej lokalizacji"}
+                        {#if locating}
+                            <svg class="locate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
+                        {:else}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 2v3" />
+                                <path d="M12 19v3" />
+                                <path d="M2 12h3" />
+                                <path d="M19 12h3" />
+                            </svg>
+                        {/if}
                     </button>
-                </div>
+                {/snippet}
+            </SearchBox>
+        </div>
+
+        {#if locateError}
+            <p class="locate-error" role="status">{locateError}</p>
+        {/if}
+
+        <div class="chip-section">
+            <p class="chip-label">Najczęściej oddawane</p>
+            <div class="chip-scroll">
+                {#each POPULAR_ITEMS as item (item.id)}
+                    {@const cat = CATEGORIES_BY_ID[item.categories[0]]}
+                    <button
+                        type="button"
+                        class="chip-pill"
+                        style="--chip-color: var({cat.colorVar});"
+                        onclick={() => pickItem(item)}
+                    >
+                        <span class="chip-dot" aria-hidden="true"></span>
+                        <span class="chip-name">{item.name}</span>
+                    </button>
+                {/each}
             </div>
-            <h2 class="tiles-h">Popularne</h2>
-            <ItemTiles onpick={pickItem} />
-        </section>
+        </div>
 
-        <section class="how">
-            <h2>Jak to działa?</h2>
-            <ol>
-                <li><strong>Wybierz rzecz</strong> — powiedz, czego chcesz się pozbyć.</li>
-                <li><strong>Podaj lokalizację</strong> — adres, miasto albo GPS.</li>
-                <li><strong>Jedź lub zadzwoń</strong> — dostaniesz adresy, godziny i zasady.</li>
-            </ol>
-        </section>
+        <div class="chip-section">
+            <div class="chip-scroll">
+                {#each topCities as c (c.city)}
+                    <button
+                        type="button"
+                        class="chip-pill chip-pill--subtle"
+                        onclick={() => gotoCity(c.city)}
+                    >
+                        <span class="chip-name">{c.city}</span>
+                        <span class="chip-count"
+                            >{c.count.toLocaleString("pl-PL")}</span
+                        >
+                    </button>
+                {/each}
+            </div>
+        </div>
 
-        <section class="edu">
-            <h2>Poradnik recyklingu</h2>
-            <p>
-                Nie wiesz, czy PSZOK przyjmie twoje opony, albo co zrobić z
-                przeterminowanymi lekami? Sprawdź zasady w prostym języku.
-            </p>
-            <a class="edu-cta" href="/poradnik">Przejdź do poradnika →</a>
-        </section>
+        <p class="edu-line">
+            Nie wiesz, jak przygotować odpady?
+            <a href="/poradnik">Przeczytaj poradnik →</a>
+        </p>
     </div>
 {/if}
 
@@ -608,6 +707,7 @@
                     onclick={() => {
                         clearItem();
                         query = "";
+                        heroQuery = "";
                         takebackTypes = new Set();
                         anchor = null;
                         radiusKm = null;
@@ -627,6 +727,7 @@
                     results={suggestions}
                     loading={geocoding}
                     onselect={handleSelect}
+                    onsubmit={handleSubmit}
                 >
                     {#snippet trailing()}
                         <button
@@ -833,10 +934,167 @@
 {/if}
 
 <style>
+    /* ══ Landing — yoga-style: quiet, centered, one search ══ */
+    .landing {
+        flex: 1;
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 9vh var(--kompi-gutter) 72px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .kicker {
+        margin: 0 0 18px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--kompi-accent);
+        font-weight: 600;
+    }
+    .hero-title {
+        margin: 0 0 14px;
+        font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+        color: var(--kompi-text);
+    }
+    .sub {
+        margin: 0 0 36px;
+        color: var(--kompi-text-3);
+        font-size: 15px;
+        max-width: 560px;
+        line-height: 1.6;
+    }
+    .hero-search {
+        width: 100%;
+        max-width: 600px;
+        position: relative;
+        margin-bottom: 44px;
+    }
+    .locate-error {
+        margin: -32px 0 32px;
+        font-size: 13px;
+        color: var(--kompi-danger);
+    }
+
+    /* ── Chip sections ── */
+    .chip-section {
+        width: 100%;
+    }
+    .chip-section + .chip-section {
+        margin-top: 28px;
+    }
+    .chip-label {
+        margin: 0 0 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--kompi-accent);
+        font-weight: 600;
+    }
+    /* Mobile: horizontal scroll; desktop: centered wrap (yoga pattern). */
+    .chip-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 calc(-1 * var(--kompi-gutter));
+        padding: 2px var(--kompi-gutter);
+    }
+    .chip-scroll::-webkit-scrollbar {
+        display: none;
+    }
+    @media (min-width: 721px) {
+        .chip-scroll {
+            flex-wrap: wrap;
+            justify-content: center;
+            overflow: visible;
+            margin: 0;
+            padding: 0;
+        }
+    }
+
+    .chip-pill {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--kompi-surface);
+        border: 1px solid var(--kompi-border);
+        border-radius: 24px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .chip-pill:hover {
+        border-color: var(--chip-color, var(--kompi-accent));
+        box-shadow: var(--kompi-shadow-sm);
+        transform: translateY(-1px);
+    }
+    .chip-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--chip-color);
+        flex-shrink: 0;
+    }
+    .chip-name {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--kompi-text);
+        white-space: nowrap;
+    }
+    .chip-count {
+        font-size: 11px;
+        color: var(--kompi-accent);
+        font-variant-numeric: tabular-nums;
+    }
+    .chip-pill--subtle {
+        background: transparent;
+        border-color: color-mix(in srgb, var(--kompi-border) 60%, transparent);
+        padding: 6px 12px;
+        gap: 6px;
+    }
+    .chip-pill--subtle .chip-name {
+        font-size: 12.5px;
+        font-weight: 400;
+        color: var(--kompi-text-3);
+    }
+    .chip-pill--subtle:hover {
+        background: var(--kompi-surface);
+        border-color: var(--kompi-border);
+        box-shadow: none;
+    }
+    .chip-pill--subtle:hover .chip-name {
+        color: var(--kompi-text);
+    }
+
+    .edu-line {
+        margin: 52px 0 0;
+        font-size: 14px;
+        color: var(--kompi-text-3);
+    }
+    .edu-line a {
+        font-weight: 600;
+    }
+
+    @media (max-height: 700px) {
+        .landing {
+            padding-top: 5vh;
+        }
+    }
+
+    /* ══ Results — light islands over the map ══ */
     .map-app {
         position: fixed;
         inset: 0;
         z-index: 40;
+        background: var(--kompi-bg);
     }
 
     .map-layer {
@@ -872,7 +1130,7 @@
     .left-col {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
         min-height: 0;
     }
 
@@ -883,23 +1141,12 @@
         justify-content: space-between;
         gap: var(--kompi-space-3);
         padding: 12px 16px;
-        background: rgba(24, 24, 27, 0.85);
+        background: var(--kompi-glass);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--kompi-glass-border);
         border-radius: 16px;
-        box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.35),
-            0 1px 2px rgba(0, 0, 0, 0.3);
-        transition:
-            transform 0.2s var(--kompi-ease),
-            box-shadow 0.2s var(--kompi-ease);
-    }
-    .brand-island:hover {
-        transform: translateY(-1px);
-        box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.45),
-            0 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--kompi-shadow-md);
     }
     .brand {
         display: flex;
@@ -941,7 +1188,7 @@
         align-items: baseline;
         flex-shrink: 0;
         padding: 6px 12px;
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--kompi-bg-subtle);
         border-radius: 20px;
     }
     .brand-stats strong {
@@ -951,7 +1198,6 @@
     }
     .brand-sep {
         color: var(--kompi-border-strong);
-        opacity: 0.5;
     }
     .new-search {
         background: transparent;
@@ -966,29 +1212,17 @@
         color: var(--kompi-accent);
     }
 
+    /* SearchBox carries its own white capsule — the island is just a
+       pointer-events wrapper. */
     .search-island {
         pointer-events: auto;
-        background: rgba(24, 24, 27, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.35),
-            0 1px 2px rgba(0, 0, 0, 0.3);
-        transition:
-            transform 0.2s var(--kompi-ease),
-            box-shadow 0.2s var(--kompi-ease);
     }
-    .search-island:focus-within {
-        box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.45),
-            0 0 0 2px var(--kompi-accent-muted);
-        transform: translateY(-1px);
+    .search-island :global(.sb) {
+        box-shadow: var(--kompi-shadow-md);
     }
 
     /* Sits between search and results — narrow, transparent, no card bg.
-       Chips carry their own translucent background. */
+       Chips carry their own background. */
     .takeback-island {
         pointer-events: auto;
         padding: 0 4px;
@@ -1014,15 +1248,15 @@
         align-items: center;
         gap: 8px;
         padding: 8px 14px;
-        background: rgba(24, 24, 27, 0.92);
+        background: var(--kompi-glass-strong);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid var(--kompi-glass-border);
         border-radius: 999px;
         color: var(--kompi-text-2);
         font-size: 12px;
         font-weight: 600;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: var(--kompi-shadow-md);
         pointer-events: none;
     }
     .truncation-hint svg {
@@ -1036,20 +1270,18 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: rgba(24, 24, 27, 0.85);
+        background: var(--kompi-glass-strong);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--kompi-glass-border);
         border-radius: 16px;
-        box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.35),
-            0 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--kompi-shadow-md);
         overflow: hidden;
     }
 
     .results-head {
         padding: 14px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid var(--kompi-border);
         font-size: 13px;
         color: var(--kompi-text-3);
         display: flex;
@@ -1057,11 +1289,6 @@
         justify-content: space-between;
         gap: 12px;
         flex-shrink: 0;
-        background: linear-gradient(
-            to bottom,
-            rgba(24, 24, 27, 0.9),
-            rgba(18, 18, 23, 0.6)
-        );
     }
     .results-head-line {
         display: flex;
@@ -1106,7 +1333,7 @@
         transition: all 0.2s ease;
     }
     .results-clear:hover {
-        background: rgba(255, 0, 60, 0.12);
+        background: rgba(220, 38, 38, 0.08);
         color: var(--kompi-danger);
     }
 
@@ -1122,7 +1349,7 @@
         overflow-x: hidden;
         padding: 16px;
         scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+        scrollbar-color: rgba(28, 38, 53, 0.2) transparent;
     }
 
     .fallback-note {
@@ -1149,7 +1376,7 @@
         background: transparent;
     }
     .results-scroll::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.18);
+        background-color: rgba(28, 38, 53, 0.2);
         border-radius: 10px;
     }
 
@@ -1184,19 +1411,6 @@
     }
     .chips-island :global(.chip) {
         white-space: nowrap;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(24, 24, 27, 0.85);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
-    }
-    .chips-island :global(.chip:hover) {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     .locate-btn {
@@ -1207,7 +1421,7 @@
         background: transparent;
         border: 0;
         border-radius: 10px;
-        color: var(--kompi-text-2);
+        color: var(--kompi-text-3);
         cursor: pointer;
         flex-shrink: 0;
         transition: all 0.2s var(--kompi-ease);
@@ -1215,7 +1429,6 @@
     .locate-btn:hover {
         background: var(--kompi-accent-subtle);
         color: var(--kompi-accent);
-        transform: scale(1.05);
     }
     .locate-btn:active {
         transform: scale(0.95);
@@ -1241,13 +1454,13 @@
         z-index: 11;
         max-width: 400px;
         padding: 14px 16px;
-        background: rgba(24, 24, 27, 0.95);
+        background: var(--kompi-glass-strong);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--kompi-glass-border);
         border-left: 4px solid var(--kompi-danger);
         border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--kompi-shadow-lg);
         color: var(--kompi-text);
         font-size: 14px;
         display: flex;
@@ -1270,7 +1483,7 @@
         place-items: center;
         width: 28px;
         height: 28px;
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--kompi-bg-subtle);
         border: 0;
         color: var(--kompi-text-3);
         border-radius: 50%;
@@ -1278,9 +1491,8 @@
         transition: all 0.2s var(--kompi-ease);
     }
     .toast-close:hover {
-        background: rgba(255, 0, 60, 0.12);
+        background: rgba(220, 38, 38, 0.08);
         color: var(--kompi-danger);
-        transform: rotate(90deg);
     }
     @keyframes toast-in {
         from {
@@ -1366,7 +1578,7 @@
             width: 40px;
             height: 4px;
             border-radius: 2px;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(28, 38, 53, 0.2);
             margin: 8px auto 0;
             flex-shrink: 0;
         }
@@ -1385,8 +1597,7 @@
             max-width: none;
         }
         .brand-island,
-        .search-island,
-        .results-island {
+        .search-island {
             border-radius: 12px;
         }
         .results-island {
@@ -1395,109 +1606,5 @@
         .truncation-hint {
             bottom: calc(48dvh + 12px);
         }
-    }
-
-    .landing {
-        max-width: 1100px;
-        width: 100%;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-        display: flex;
-        flex-direction: column;
-        gap: 56px;
-    }
-    .hero h1 {
-        font-size: clamp(28px, 5vw, 44px);
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-        margin: 0 0 12px;
-    }
-    .hero .sub {
-        color: var(--kompi-text-3);
-        font-size: 16px;
-        max-width: 640px;
-        margin: 0 0 28px;
-    }
-    .hero-search {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        max-width: 640px;
-        margin-bottom: 36px;
-    }
-    .hero-location {
-        display: flex;
-        gap: 10px;
-        align-items: stretch;
-    }
-    .hero-location > :global(*:first-child) {
-        flex: 1;
-    }
-    .locate-cta {
-        flex-shrink: 0;
-        padding: 0 18px;
-        border-radius: 14px;
-        border: 1px solid var(--kompi-border-strong);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--kompi-text-2);
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .locate-cta:hover {
-        border-color: var(--kompi-accent);
-        color: var(--kompi-accent);
-    }
-    .tiles-h {
-        font-size: 13px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--kompi-text-4);
-        margin: 0 0 12px;
-    }
-    .how ol {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        list-style: none;
-        counter-reset: step;
-        padding: 0;
-        margin: 16px 0 0;
-    }
-    .how li {
-        counter-increment: step;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--kompi-border);
-        border-radius: 14px;
-        color: var(--kompi-text-2);
-        font-size: 14px;
-        line-height: 1.5;
-    }
-    .how li::before {
-        content: counter(step);
-        display: block;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--kompi-accent-muted);
-        color: var(--kompi-accent);
-        font-weight: 700;
-        display: grid;
-        place-items: center;
-        margin-bottom: 10px;
-    }
-    .how h2, .edu h2 {
-        font-size: 22px;
-        margin: 0;
-    }
-    .edu p {
-        color: var(--kompi-text-3);
-        max-width: 560px;
-        margin: 10px 0 16px;
-    }
-    .edu-cta {
-        font-weight: 700;
-        color: var(--kompi-accent);
     }
 </style>

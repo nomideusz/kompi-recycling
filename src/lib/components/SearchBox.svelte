@@ -3,7 +3,7 @@
 
   export type SearchBoxItem = {
     key: string;
-    icon: 'pin' | 'operator' | 'postal' | 'category' | 'city';
+    icon: 'pin' | 'operator' | 'postal' | 'category' | 'city' | 'item';
     text: string;
     meta?: string;
     group?: string;
@@ -16,6 +16,7 @@
     placeholder = 'Szukaj po mieście, ulicy, operatorze…',
     ariaLabel = 'Szukaj punktów zbiórki',
     onselect,
+    onsubmit,
     oninput,
     onkeydown: onkeydownProp,
     onfocus: onfocusProp,
@@ -28,6 +29,8 @@
     placeholder?: string;
     ariaLabel?: string;
     onselect?: (item: SearchBoxItem, index: number) => void;
+    /** Enter pressed without an arrow-key selection — resolve the raw query. */
+    onsubmit?: (query: string) => void;
     oninput?: (e: Event) => void;
     onkeydown?: (e: KeyboardEvent) => void;
     onfocus?: () => void;
@@ -61,6 +64,8 @@
       e.preventDefault();
       if (isOpen && activeIndex >= 0 && activeIndex < results.length) {
         onselect?.(results[activeIndex], activeIndex);
+      } else if (query.trim()) {
+        onsubmit?.(query.trim());
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -102,6 +107,7 @@
     postal: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     category: '<path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/>',
     city: '<path d="M3 21V9l6-4v16"/><path d="M9 21V5l6 4v12"/><path d="M15 21V9l6 4v8"/><path d="M3 21h18"/>',
+    item: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
   } as const;
 
   export function focus() { inputEl?.focus(); }
@@ -185,28 +191,39 @@
 </div>
 
 <style>
-  .sb-root {
-    position: relative;
-    width: 100%;
-  }
-
+  /* Yoga-style pill: self-contained white capsule that opens into a
+     connected dropdown (capsule top + squared seam + rounded bottom). */
   .sb {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 2px 16px;
-    background: transparent;
-    border-radius: 16px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 4px 20px;
+    background: var(--kompi-surface);
+    border: 1px solid var(--kompi-border);
+    border-radius: 64px;
+    box-shadow: var(--kompi-shadow-sm);
+    transition:
+      border-color 0.2s ease,
+      border-radius 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .sb:focus-within {
+    border-color: var(--kompi-accent);
+    box-shadow: 0 12px 40px var(--kompi-accent-subtle), var(--kompi-shadow-md);
+  }
+  .sb.sb-open {
+    border-radius: 22px 22px 0 0;
+    border-bottom-color: var(--kompi-border);
   }
 
-  .sb-icon {
+  .sb-icon-wrap {
     display: flex;
-    color: var(--kompi-text-3);
+    color: var(--kompi-text-4);
     flex-shrink: 0;
     transition: color 0.2s ease;
   }
-  .sb:focus-within .sb-icon {
+  .sb:focus-within .sb-icon-wrap {
     color: var(--kompi-accent);
   }
   .sb-spin {
@@ -219,10 +236,9 @@
     border: 0;
     outline: 0;
     background: transparent;
-    padding: 14px 0;
+    padding: 12px 0;
     font: inherit;
     font-size: 16px;
-    font-weight: 500;
     color: var(--kompi-text);
     min-width: 0;
     letter-spacing: -0.01em;
@@ -236,9 +252,9 @@
   .sb-clear {
     display: inline-grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.06);
+    width: 30px;
+    height: 30px;
+    background: var(--kompi-bg-subtle);
     border: 0;
     color: var(--kompi-text-3);
     border-radius: 50%;
@@ -247,48 +263,39 @@
   }
   .sb-clear:hover {
     color: var(--kompi-danger);
-    background: rgba(255, 0, 60, 0.12);
-    transform: rotate(90deg);
+    background: rgba(220, 38, 38, 0.08);
   }
 
   .sb-sep {
     width: 1px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--kompi-border);
     flex-shrink: 0;
   }
 
   .sb-dropdown {
     position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
-    background: rgba(24, 24, 27, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.35);
+    top: 100%;
+    left: -1px;
+    right: -1px;
+    background: var(--kompi-surface);
+    border: 1px solid var(--kompi-accent);
+    border-top: 1px solid var(--kompi-border);
+    border-radius: 0 0 22px 22px;
+    box-shadow: var(--kompi-shadow-lg);
     z-index: 50;
     max-height: 50vh;
     overflow-y: auto;
-    padding: 8px 0;
-    animation: sb-drop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  
-  @keyframes sb-drop {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    padding: 4px 0 8px;
   }
 
   .sb-group {
-    font-family: var(--kompi-font-sans);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--kompi-text-4);
-    font-weight: 700;
-    padding: 12px 20px 6px;
+    font-weight: 600;
+    padding: 12px 22px 5px;
   }
 
   .sb-item {
@@ -296,7 +303,7 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 10px 20px;
+    padding: 9px 22px;
     background: transparent;
     border: 0;
     text-align: left;
@@ -304,21 +311,16 @@
     font-size: 15px;
     color: var(--kompi-text);
     cursor: pointer;
-    transition: all 0.2s var(--kompi-ease);
+    transition: background 0.15s ease;
   }
   .sb-item:hover,
   .sb-item--active {
-    background: var(--kompi-accent-subtle);
-    color: var(--kompi-accent);
-  }
-  .sb-item--active {
-    background: var(--kompi-accent-muted);
-    font-weight: 600;
+    background: var(--kompi-bg-subtle);
   }
 
   .sb-item-icon {
     flex-shrink: 0;
-    color: var(--kompi-text-3);
+    color: var(--kompi-text-4);
     display: flex;
     transition: color 0.2s ease;
   }
@@ -337,14 +339,22 @@
   }
   .sb-item-meta {
     flex-shrink: 0;
-    font-family: var(--kompi-font-sans);
     font-size: 12px;
     color: var(--kompi-text-3);
     letter-spacing: 0.02em;
-    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    background: rgba(255, 255, 255, 0.06);
-    padding: 2px 8px;
-    border-radius: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .sb {
+      border-radius: 40px;
+      padding: 2px 16px;
+    }
+    .sb.sb-open {
+      border-radius: 18px 18px 0 0;
+    }
+    .sb-dropdown {
+      border-radius: 0 0 18px 18px;
+    }
   }
 </style>

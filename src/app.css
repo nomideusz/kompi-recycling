@@ -1,8 +1,9 @@
 /* ══════════════════════════════════════════════════════
    recycling.kompi.pl — Design Tokens
-   Dark map-app aesthetic — Questrial on near-black
-   neutrals with an orange accent; category hues carry
-   the color coding on pins, chips and cards.
+   Light directory aesthetic (shared with the kompi.pl
+   family) — Questrial on calm cool neutrals with the
+   kompi orange accent; category hues carry the color
+   coding on pins, chips and cards.
    ══════════════════════════════════════════════════════ */
 
 /* Questrial — self-hosted Google Fonts subsets (latin + latin-ext for
@@ -47,29 +48,34 @@
     --kompi-text-2xl: 28px;
     --kompi-text-3xl: 36px;
 
-    /* ── Palette — Cyberpunk / Dark Neon ───────── */
-    --kompi-bg: #09090b;
-    --kompi-bg-subtle: #121217;
-    --kompi-surface: #18181b;
-    --kompi-surface-raised: #222226;
-    --kompi-border: #27272a;
-    --kompi-border-strong: #3f3f46;
+    /* ── Palette — Kompi Frost (light, calm) ───── */
+    --kompi-bg: #f7f9fb;
+    --kompi-bg-subtle: #eef2f6;
+    --kompi-surface: #ffffff;
+    --kompi-surface-raised: #ffffff;
+    --kompi-border: #e2e8f0;
+    --kompi-border-strong: #cbd5e1;
 
-    --kompi-text: #f4f4f5;
-    --kompi-text-2: #e4e4e7;
-    --kompi-text-3: #a1a1aa;
-    --kompi-text-4: #71717a;
+    --kompi-text: #1c2635;
+    --kompi-text-2: #3d495c;
+    --kompi-text-3: #68758a;
+    --kompi-text-4: #94a1b3;
 
-    --kompi-accent: #f97e21; /* Orange */
-    --kompi-accent-hover: #e06d12;
-    --kompi-accent-strong: #d05c00;
-    --kompi-accent-muted: rgba(249, 126, 33, 0.15);
-    --kompi-accent-subtle: rgba(249, 126, 33, 0.05);
+    --kompi-accent: #ea6a12; /* Kompi orange, tuned for white */
+    --kompi-accent-hover: #d05c00;
+    --kompi-accent-strong: #b34e00;
+    --kompi-accent-muted: rgba(234, 106, 18, 0.18);
+    --kompi-accent-subtle: rgba(234, 106, 18, 0.07);
 
-    --kompi-success: #16a34a;
-    --kompi-warning: #ffb800;
-    --kompi-danger: #ff003c;
-    --kompi-info: #00e5ff;
+    --kompi-success: #15803d;
+    --kompi-warning: #b45309;
+    --kompi-danger: #dc2626;
+    --kompi-info: #0369a1;
+
+    /* Floating islands over the map — translucent white glass */
+    --kompi-glass: rgba(255, 255, 255, 0.9);
+    --kompi-glass-strong: rgba(255, 255, 255, 0.97);
+    --kompi-glass-border: rgba(28, 38, 53, 0.1);
 
     /* Category hues - Kompi Vibe */
     --kompi-cat-weee: #0778c1; /* Blue */
@@ -86,10 +92,10 @@
     --kompi-cat-textiles: #db2777; /* Magenta */
 
     /* Take-back-mode hues — muted on purpose, secondary to category colors */
-    --kompi-tb-free_dropbox: #4ade80; /* mint green: no friction */
-    --kompi-tb-purchase_required: #f59e0b; /* amber: requires purchase */
-    --kompi-tb-municipal: #60a5fa; /* blue: institutional */
-    --kompi-tb-mobile_event: #c084fc; /* lavender: scheduled event */
+    --kompi-tb-free_dropbox: #16a34a; /* green: no friction */
+    --kompi-tb-purchase_required: #d97706; /* amber: requires purchase */
+    --kompi-tb-municipal: #2563eb; /* blue: institutional */
+    --kompi-tb-mobile_event: #9333ea; /* violet: scheduled event */
 
     /* ── Layout ───────────────────────── */
     --kompi-container: 1200px;
@@ -115,16 +121,16 @@
     --kompi-radius-xl: 20px;
     --kompi-radius-pill: 999px;
 
-    /* ── Shadows — tuned for neon glow ───────── */
-    --kompi-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+    /* ── Shadows — soft, low-contrast ───────── */
+    --kompi-shadow-xs: 0 1px 2px rgba(21, 29, 43, 0.05);
     --kompi-shadow-sm:
-        0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5);
+        0 1px 3px rgba(21, 29, 43, 0.06), 0 1px 2px rgba(21, 29, 43, 0.04);
     --kompi-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(249, 126, 33, 0.1);
+        0 4px 16px rgba(21, 29, 43, 0.07), 0 1px 3px rgba(21, 29, 43, 0.05);
     --kompi-shadow-md:
-        0 8px 24px rgba(0, 0, 0, 0.7), 0 0 20px rgba(249, 126, 33, 0.15);
+        0 8px 28px rgba(21, 29, 43, 0.09), 0 2px 6px rgba(21, 29, 43, 0.05);
     --kompi-shadow-lg:
-        0 16px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 126, 33, 0.2);
+        0 16px 48px rgba(21, 29, 43, 0.12), 0 4px 12px rgba(21, 29, 43, 0.06);
     --kompi-ring: 0 0 0 2px var(--kompi-bg), 0 0 0 4px var(--kompi-accent);
 
     /* ── Motion ───────────────────────── */
@@ -169,9 +175,11 @@ h4 {
     letter-spacing: -0.01em;
     font-weight: 600;
 }
+/* Questrial ships a single 400 weight — large headings stay at their true
+   weight (calm, yoga-like) instead of synthesized bold. */
 h1 {
-    letter-spacing: -0.022em;
-    font-weight: 700;
+    letter-spacing: -0.025em;
+    font-weight: 400;
 }
 
 a {

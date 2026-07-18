@@ -521,16 +521,16 @@
         border-color: var(--kompi-accent);
         color: white;
         box-shadow:
-            0 1px 2px rgba(249, 126, 33, 0.2),
-            0 4px 12px rgba(249, 126, 33, 0.15);
+            0 1px 2px rgba(234, 106, 18, 0.2),
+            0 4px 12px rgba(234, 106, 18, 0.15);
     }
     .btn-primary:hover {
         background: var(--kompi-accent-hover);
         border-color: var(--kompi-accent-hover);
         color: white;
         box-shadow:
-            0 2px 4px rgba(249, 126, 33, 0.2),
-            0 8px 20px rgba(249, 126, 33, 0.25);
+            0 2px 4px rgba(234, 106, 18, 0.2),
+            0 8px 20px rgba(234, 106, 18, 0.25);
     }
 
     .grid {
@@ -681,7 +681,7 @@
         grid-template-areas: "name dist" "meta dist";
         gap: 2px 12px;
         padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--kompi-surface);
         border: 1px solid var(--kompi-border);
         border-radius: 12px;
         color: var(--kompi-text);
@@ -725,7 +725,7 @@
             bottom: 0;
             z-index: 30;
             padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-            background: rgba(9, 9, 11, 0.92);
+            background: var(--kompi-glass-strong);
             backdrop-filter: blur(12px);
             border-top: 1px solid var(--kompi-border);
         }

@@ -146,7 +146,7 @@
         padding: 12px 16px;
         font-size: 12px;
         color: var(--kompi-text-3);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--kompi-bg-subtle);
         border-left: 3px solid var(--kompi-border-strong);
         border-radius: 8px;
         line-height: 1.6;
