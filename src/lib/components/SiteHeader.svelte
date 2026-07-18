@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import KompiLogo from '$lib/images/logo/logo-kompi-white.png';
+  import KompiLogo from '$lib/images/logo/logo-kompi.png';
 
   const path = $derived(page.url.pathname);
 </script>
@@ -71,7 +71,7 @@
   }
   nav a:hover {
     color: var(--kompi-text);
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--kompi-bg-subtle);
     text-decoration: none;
   }
   nav a[aria-current='page'] {

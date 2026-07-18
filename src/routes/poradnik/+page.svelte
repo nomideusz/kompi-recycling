@@ -59,7 +59,7 @@
         display: block;
         height: 100%;
         padding: 20px;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--kompi-surface);
         border: 1px solid var(--kompi-border);
         border-top: 3px solid var(--g-color);
         border-radius: 14px;

@@ -49,41 +49,40 @@
     align-items: center;
     gap: 10px;
     padding: 8px 16px;
-    background: rgba(24, 24, 27, 0.85);
+    background: var(--kompi-glass, var(--kompi-surface));
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--kompi-border);
     border-radius: 999px;
     color: var(--kompi-text-2);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.01em;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--kompi-shadow-sm);
     cursor: pointer;
   }
   .chip:hover {
     border-color: var(--chip-color);
     color: var(--kompi-text);
-    background: rgba(34, 34, 38, 0.95);
+    background: var(--kompi-surface);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--kompi-shadow);
   }
   .chip.on {
     background: var(--chip-color);
     border-color: var(--chip-color);
     color: white;
     padding-right: 14px;
-    box-shadow: 0 4px 16px var(--chip-color);
+    box-shadow: var(--kompi-shadow);
     transform: translateY(-1px);
   }
   .chip.on:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px var(--chip-color);
   }
   .chip.on .dot {
-    background: rgba(24, 24, 27, 0.95);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: none;
   }
   .dot {
     width: 10px;
@@ -91,7 +90,6 @@
     border-radius: 50%;
     background: var(--chip-color);
     transition: all 0.2s var(--kompi-ease);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   }
   .check {
     color: white;
