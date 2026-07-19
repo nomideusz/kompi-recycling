@@ -19,7 +19,10 @@
         buildDistanceIndex,
         buildHaystackIndex,
         buildSuggestions,
+        cityTokenScore,
         filterPoints,
+        normalize,
+        queryTokens,
         sortByDistance,
     } from "$lib/search";
     import { geocodeAddress, type Anchor } from "$lib/distance";
@@ -211,7 +214,20 @@
     const itemSuggestions = $derived.by((): SearchBoxItem[] => {
         const q = suggestQ.trim();
         if (q.length < 2) return [];
-        return matchItems(q, 5).map((item) => ({
+        let matched = matchItems(q, 5);
+        // Multi-word queries like "laptop kraków" won't match an item as a
+        // whole — retry per token so the item part still surfaces.
+        if (matched.length === 0) {
+            const tokens = queryTokens(q).filter((t) => t.length >= 3);
+            if (tokens.length >= 2) {
+                const seen = new Set<string>();
+                matched = tokens
+                    .flatMap((t) => matchItems(t, 3))
+                    .filter((it) => !seen.has(it.id) && !!seen.add(it.id))
+                    .slice(0, 4);
+            }
+        }
+        return matched.map((item) => ({
             key: `item:${item.id}`,
             icon: "item" as const,
             text: item.name,
@@ -220,7 +236,46 @@
         }));
     });
 
+    // "laptop kraków" → one suggestion that applies both: the item's
+    // categories AND the city (yoga's city+style combo, recycled).
+    const comboSuggestion = $derived.by((): SearchBoxItem | null => {
+        const q = suggestQ.trim();
+        if (q.length < 3) return null;
+        const tokens = queryTokens(q);
+        if (tokens.length < 2) return null;
+        for (let i = 0; i < tokens.length; i++) {
+            if (tokens[i].length < 3) continue;
+            let best: { city: string; score: number; count: number } | null =
+                null;
+            for (const c of cityAggregates) {
+                const s = cityTokenScore(normalize(c.city), tokens[i]);
+                if (
+                    s > 0 &&
+                    (!best ||
+                        s > best.score ||
+                        (s === best.score && c.count > best.count))
+                ) {
+                    best = { city: c.city, score: s, count: c.count };
+                }
+            }
+            if (!best) continue;
+            const rest = tokens.filter((_, j) => j !== i).join(" ");
+            const items = rest.length >= 2 ? matchItems(rest, 1) : [];
+            if (items.length > 0) {
+                return {
+                    key: `itemcity:${items[0].id}:${best.city}`,
+                    icon: "item" as const,
+                    text: `${items[0].name} — ${best.city}`,
+                    meta: `${best.count.toLocaleString("pl-PL")} punktów`,
+                    group: "Rzeczy",
+                };
+            }
+        }
+        return null;
+    });
+
     const suggestions = $derived([
+        ...(comboSuggestion ? [comboSuggestion] : []),
         ...itemSuggestions,
         ...buildSuggestions(points, suggestQ, cityAggregates),
     ]);
@@ -460,6 +515,14 @@
 
     async function handleSelect(item: { key: string; text: string }) {
         heroQuery = "";
+        if (item.key.startsWith("itemcity:")) {
+            const [, itemId, ...cityParts] = item.key.split(":");
+            const it = ITEMS_BY_ID[itemId];
+            query = "";
+            if (it) pickItem(it);
+            gotoCity(cityParts.join(":"));
+            return;
+        }
         if (item.key.startsWith("item:")) {
             const id = item.key.slice("item:".length);
             const it = ITEMS_BY_ID[id];
