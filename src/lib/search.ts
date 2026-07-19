@@ -253,6 +253,22 @@ export function buildSuggestions(
 
 	const items: SearchBoxItem[] = [];
 
+	// Full postal code → offer proximity search around it (geocoded via the
+	// existing address path, which sets an anchor + radius). Ranked first:
+	// a full code is an unambiguous "near me" intent, like yoga's postal
+	// resolver.
+	const postalFull = query.trim().match(/^(\d{2})\s*-?\s*(\d{3})$/);
+	if (postalFull) {
+		const code = `${postalFull[1]}-${postalFull[2]}`;
+		items.push({
+			key: `address:${code}`,
+			icon: 'postal',
+			text: code,
+			meta: 'Pokaż punkty w pobliżu',
+			group: 'Kod pocztowy',
+		});
+	}
+
 	for (const { city, count } of cityMatches.slice(0, perGroupLimit)) {
 		items.push({
 			key: `city:${city.city}`,
@@ -285,7 +301,11 @@ export function buildSuggestions(
 		});
 	}
 
-	if (looksLikeAddress(query)) {
+	// Generic geocode offer — but not for a partial postal code ("30-0"):
+	// geocoding an incomplete code returns arbitrary places, and the full-code
+	// entry above already covers the completed form.
+	const partialPostal = /^\d{2}\s*-?\s*\d{0,2}$/.test(query.trim());
+	if (!postalFull && !partialPostal && looksLikeAddress(query)) {
 		items.push({
 			key: `address:${query}`,
 			icon: 'pin',

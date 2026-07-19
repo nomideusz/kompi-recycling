@@ -82,6 +82,24 @@ describe('filterPoints token matching', () => {
 	});
 });
 
+describe('buildSuggestions postal codes', () => {
+	it('offers proximity geocoding for a full postal code, ranked first', () => {
+		const items = buildSuggestions([], '30-001', []);
+		expect(items[0]?.key).toBe('address:30-001');
+		expect(items[0]?.group).toBe('Kod pocztowy');
+	});
+
+	it('normalizes a postal code typed without the dash', () => {
+		const items = buildSuggestions([], '30001', []);
+		expect(items[0]?.key).toBe('address:30-001');
+	});
+
+	it('does not offer geocoding for a partial code', () => {
+		const items = buildSuggestions([], '30-0', []);
+		expect(items.some((i) => i.key.startsWith('address:'))).toBe(false);
+	});
+});
+
 describe('buildSuggestions city declension', () => {
 	const aggs: CityAggregate[] = [
 		{ city: 'Kraków', lat: 50.06, lng: 19.94, count: 500 },

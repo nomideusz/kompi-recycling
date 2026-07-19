@@ -569,6 +569,19 @@
     /** Enter without an arrow-key selection — resolve like yoga: take the
      *  top suggestion when there is one, otherwise commit the raw text. */
     function handleSubmit(raw: string) {
+        // Address intent beats a bare city match when the query carries
+        // more than the city name ("marszałkowska 1 warszawa" should
+        // geocode the street, not just open Warszawa).
+        const first = suggestions[0];
+        if (first?.key.startsWith("city:") && queryTokens(raw).length >= 2) {
+            const addr = suggestions.find((s) =>
+                s.key.startsWith("address:"),
+            );
+            if (addr) {
+                void handleSelect(addr);
+                return;
+            }
+        }
         if (suggestions.length > 0) {
             void handleSelect(suggestions[0]);
             return;
