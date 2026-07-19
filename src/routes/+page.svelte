@@ -25,6 +25,7 @@
         queryTokens,
         sortByDistance,
     } from "$lib/search";
+    import { citySlug, MIN_CITY_PAGE_COUNT } from "$lib/city-slug";
     import { geocodeAddress, type Anchor } from "$lib/distance";
     import { cityAggFromWire, fromWire } from "$lib/wire";
     import { PointStore, type Bbox } from "$lib/pointStore.svelte";
@@ -704,16 +705,20 @@
         <div class="chip-section">
             <div class="chip-scroll">
                 {#each topCities as c (c.city)}
-                    <button
-                        type="button"
+                    <!-- Real links (yoga pattern): crawlable path into the
+                         city directory pages; cities without a page fall
+                         back to the map filter. -->
+                    <a
                         class="chip-pill chip-pill--subtle"
-                        onclick={() => gotoCity(c.city)}
+                        href={c.count >= MIN_CITY_PAGE_COUNT
+                            ? `/miasto/${citySlug(c.city)}`
+                            : `/?q=${encodeURIComponent(c.city)}`}
                     >
                         <span class="chip-name">{c.city}</span>
                         <span class="chip-count"
                             >{c.count.toLocaleString("pl-PL")}</span
                         >
-                    </button>
+                    </a>
                 {/each}
             </div>
         </div>
@@ -1106,7 +1111,11 @@
         border: 1px solid var(--kompi-border);
         border-radius: 24px;
         cursor: pointer;
+        text-decoration: none;
         transition: all 0.2s ease;
+    }
+    .chip-pill:hover {
+        text-decoration: none;
     }
     .chip-pill:hover {
         border-color: var(--chip-color, var(--kompi-accent));

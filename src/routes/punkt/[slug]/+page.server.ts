@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getAllPoints, getPointBySlug } from '$lib/server/db/queries/points';
 import { POINTS, getPoint as getSeedPoint } from '$lib/data';
 import { haversineKm } from '$lib/distance';
+import { citySlug, MIN_CITY_PAGE_COUNT } from '$lib/city-slug';
 import type { EntryGenerator } from './$types';
 
 // Detail pages carry the same build-frozen dataset as the map, so bake all
@@ -22,10 +23,14 @@ export const load = async ({ params }) => {
 	if (!point) throw error(404, 'Nie znaleziono punktu.');
 
 	// Three nearest points sharing at least one category — O(n) selection,
-	// no full sort; runs 30k times during prerender so keep it lean.
+	// no full sort; runs 30k times during prerender so keep it lean. The
+	// same pass counts the city's points to decide whether a /miasto page
+	// exists for the breadcrumb.
 	const all = await getAllPoints().catch(() => POINTS);
+	let cityCount = 0;
 	const top: Array<{ p: (typeof all)[number]; d: number }> = [];
 	for (const c of all) {
+		if (c.city === point.city) cityCount++;
 		if (c.slug === point.slug) continue;
 		if (!c.categories.some((id) => point.categories.includes(id))) continue;
 		const d = haversineKm(point.lat, point.lng, c.lat, c.lng);
@@ -39,6 +44,10 @@ export const load = async ({ params }) => {
 	}
 	return {
 		point,
+		cityHref:
+			cityCount >= MIN_CITY_PAGE_COUNT
+				? `/miasto/${citySlug(point.city)}`
+				: `/?q=${encodeURIComponent(point.city)}`,
 		alternatives: top.map(({ p, d }) => ({
 			slug: p.slug,
 			name: p.name,

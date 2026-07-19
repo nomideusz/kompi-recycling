@@ -67,7 +67,7 @@
                     "@type": "ListItem",
                     position: 2,
                     name: p.city,
-                    item: `https://recycling.kompi.pl/?q=${encodeURIComponent(p.city)}`,
+                    item: `https://recycling.kompi.pl${data.cityHref}`,
                 },
                 {
                     "@type": "ListItem",
@@ -106,7 +106,7 @@
         <nav class="crumbs" aria-label="Ścieżka nawigacji">
             <a href="/">Mapa</a>
             <span aria-hidden="true">›</span>
-            <a href="/?q={encodeURIComponent(p.city)}">{p.city}</a>
+            <a href={data.cityHref}>{p.city}</a>
             <span aria-hidden="true">›</span>
             <span aria-current="page">{p.name}</span>
         </nav>
