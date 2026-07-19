@@ -871,6 +871,7 @@
                             class="results-head-line"
                             id="results-top"
                             tabindex="-1"
+                            aria-live="polite"
                         >
                             <strong
                                 >{sortedFiltered.length.toLocaleString(
@@ -1027,7 +1028,7 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.18em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
     }
     .hero-title {
@@ -1069,7 +1070,7 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
     }
     /* Mobile: horizontal scroll; desktop: centered wrap (yoga pattern). */
@@ -1127,7 +1128,7 @@
     }
     .chip-count {
         font-size: 11px;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-variant-numeric: tabular-nums;
     }
     .chip-pill--subtle {
@@ -1308,7 +1309,7 @@
         white-space: nowrap;
     }
     .new-search:hover {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
     }
 
     /* SearchBox carries its own white capsule — the island is just a
@@ -1410,7 +1411,7 @@
         font-weight: 500;
     }
     .results-q {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1463,7 +1464,7 @@
         border-radius: 10px;
         border: 1px solid var(--kompi-accent-muted);
         background: var(--kompi-accent-subtle);
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 700;
         cursor: pointer;
     }
@@ -1527,14 +1528,14 @@
     }
     .locate-btn:hover {
         background: var(--kompi-accent-subtle);
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
     }
     .locate-btn:active {
         transform: scale(0.95);
     }
     .locate-btn:disabled {
         cursor: default;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         opacity: 0.5;
     }
     .locate-spin {

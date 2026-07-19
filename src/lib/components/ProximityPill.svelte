@@ -119,7 +119,7 @@
   }
   .pill-icon {
     display: inline-flex;
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .pill-label {
     flex: 1;
@@ -206,7 +206,7 @@
   }
   .menu-item.on {
     background: var(--kompi-accent-subtle);
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
     font-weight: 700;
   }
 </style>

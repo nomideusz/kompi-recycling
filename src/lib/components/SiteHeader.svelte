@@ -87,7 +87,7 @@
     text-decoration: none;
   }
   nav a[aria-current='page'] {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
     background: var(--kompi-accent-subtle);
   }
 </style>

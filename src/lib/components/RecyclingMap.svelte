@@ -921,7 +921,7 @@
         display: inline-block;
         font-size: 13px;
         font-weight: 500;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         text-decoration: none;
         padding: 2px 0;
     }

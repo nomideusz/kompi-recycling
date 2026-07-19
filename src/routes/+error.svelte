@@ -44,7 +44,7 @@
     font-family: var(--kompi-font-mono);
     font-size: 64px;
     font-weight: 700;
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
     letter-spacing: -0.03em;
     margin-bottom: var(--kompi-space-2);
     line-height: 1;

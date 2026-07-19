@@ -137,7 +137,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         margin: 32px 0 10px;
     }
     .cols {
@@ -182,7 +182,7 @@
         transition: color var(--kompi-dur-fast) var(--kompi-ease);
     }
     .faq summary:hover {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
     }
     .faq p {
         margin: 10px 0 0;

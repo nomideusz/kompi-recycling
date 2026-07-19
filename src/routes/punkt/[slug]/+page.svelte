@@ -565,7 +565,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         margin: 0 0 10px;
     }
 
@@ -704,7 +704,7 @@
         align-self: center;
         font-weight: 700;
         font-size: 13px;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-variant-numeric: tabular-nums;
     }
 

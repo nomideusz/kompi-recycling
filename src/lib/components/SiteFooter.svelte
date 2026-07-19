@@ -55,7 +55,7 @@
     letter-spacing: -0.01em;
   }
   .brand-line .dot {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .about {
     margin: 0;
@@ -68,7 +68,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
     font-weight: 600;
   }
   .col a {
@@ -77,7 +77,7 @@
     font-weight: 500;
   }
   .col a:hover {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .legal {
     border-top: 1px solid var(--kompi-border);

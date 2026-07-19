@@ -44,7 +44,7 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.18em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
     }
     h1 {
