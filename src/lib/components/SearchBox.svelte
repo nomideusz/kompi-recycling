@@ -224,7 +224,7 @@
     transition: color 0.2s ease;
   }
   .sb:focus-within .sb-icon-wrap {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .sb-spin {
     animation: sb-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -326,7 +326,7 @@
   }
   .sb-item:hover .sb-item-icon,
   .sb-item--active .sb-item-icon {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .sb-item-text {
     flex: 1;
@@ -355,6 +355,14 @@
     }
     .sb-dropdown {
       border-radius: 0 0 18px 18px;
+    }
+    /* Comfortable thumb targets on touch. */
+    .sb-clear {
+      width: 36px;
+      height: 36px;
+    }
+    .sb-item {
+      padding: 12px 20px;
     }
   }
 </style>

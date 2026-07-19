@@ -14,6 +14,9 @@ importers:
       '@libsql/client':
         specifier: ^0.17.0
         version: 0.17.2
+      '@nomideusz/svelte-search':
+        specifier: ^0.2.0
+        version: 0.2.0(svelte@5.55.4)
       dotenv:
         specifier: ^17.3.1
         version: 17.4.2
@@ -599,6 +602,11 @@ packages:
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
+
+  '@nomideusz/svelte-search@0.2.0':
+    resolution: {integrity: sha512-hwUvma6qPHbc22E8uffxYW+DvM42IFyjVRPXkVYlkkoRuTQ4vW1nrjEQPu4G97hAzWkrLbZ3PomoiFldTQqmew==}
+    peerDependencies:
+      svelte: ^5.0.0
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -1668,6 +1676,10 @@ snapshots:
     optional: true
 
   '@neon-rs/load@0.0.4': {}
+
+  '@nomideusz/svelte-search@0.2.0(svelte@5.55.4)':
+    dependencies:
+      svelte: 5.55.4
 
   '@polka/url@1.0.0-next.29': {}
 

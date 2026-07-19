@@ -1,6 +1,7 @@
-import { getAllPoints } from '$lib/server/db/queries/points';
+import { getAllPoints, getCityAggregates } from '$lib/server/db/queries/points';
 import { POINTS } from '$lib/data';
 import { GUIDES } from '$lib/guides';
+import { citySlug, MIN_CITY_PAGE_COUNT } from '$lib/city-slug';
 import type { RequestHandler } from './$types';
 
 const BASE = 'https://recycling.kompi.pl';
@@ -40,6 +41,17 @@ export const GET: RequestHandler = async () => {
 	urls.push(renderUrl(`${BASE}/poradnik`, 'monthly', '0.8', buildDate));
 	for (const g of GUIDES) {
 		urls.push(renderUrl(`${BASE}/poradnik/${g.slug}`, 'monthly', '0.8', buildDate));
+	}
+
+	const aggs = await getCityAggregates().catch(() => []);
+	const citySeen = new Set<string>();
+	for (const a of aggs) {
+		if (a.count < MIN_CITY_PAGE_COUNT) continue;
+		const s = citySlug(a.city);
+		if (s && !citySeen.has(s)) {
+			citySeen.add(s);
+			urls.push(renderUrl(`${BASE}/miasto/${s}`, 'weekly', '0.8', buildDate));
+		}
 	}
 
 	for (const p of points) {

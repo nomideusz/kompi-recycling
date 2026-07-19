@@ -10,8 +10,8 @@ const MANIFEST = {
 	display: 'standalone',
 	orientation: 'portrait',
 	lang: 'pl-PL',
-	background_color: '#09090b',
-	theme_color: '#09090b',
+	background_color: '#f7f9fb',
+	theme_color: '#f7f9fb',
 	categories: ['utilities', 'productivity', 'navigation'],
 	icons: [
 		{

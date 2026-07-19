@@ -64,6 +64,10 @@
     --kompi-accent: #ea6a12; /* Kompi orange, tuned for white */
     --kompi-accent-hover: #d05c00;
     --kompi-accent-strong: #b34e00;
+    /* Darker accent for small text on light backgrounds — #ea6a12 is only
+       ~3.2:1 on white (fine for borders/large UI, fails AA for body-size
+       text); this one is ~4.8:1. */
+    --kompi-accent-text: #c14e00;
     --kompi-accent-muted: rgba(234, 106, 18, 0.18);
     --kompi-accent-subtle: rgba(234, 106, 18, 0.07);
 
@@ -183,7 +187,7 @@ h1 {
 }
 
 a {
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
     text-decoration: none;
     transition: color var(--kompi-dur-fast) var(--kompi-ease);
 }
@@ -214,6 +218,28 @@ button {
 .sb-input:focus-visible,
 .sb:focus-within .sb-input {
     box-shadow: none;
+}
+
+/* ── View transitions — soft cross-fade between pages ── */
+::view-transition-old(root) {
+    animation: 0.25s ease both kompi-vt-out;
+}
+::view-transition-new(root) {
+    animation: 0.25s ease both kompi-vt-in;
+}
+@keyframes kompi-vt-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@keyframes kompi-vt-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+    }
 }
 
 /* ── Accessibility ──────────────────── */

@@ -19,9 +19,13 @@
         buildDistanceIndex,
         buildHaystackIndex,
         buildSuggestions,
+        cityTokenScore,
         filterPoints,
+        normalize,
+        queryTokens,
         sortByDistance,
     } from "$lib/search";
+    import { citySlug, MIN_CITY_PAGE_COUNT } from "$lib/city-slug";
     import { geocodeAddress, type Anchor } from "$lib/distance";
     import { cityAggFromWire, fromWire } from "$lib/wire";
     import { PointStore, type Bbox } from "$lib/pointStore.svelte";
@@ -211,7 +215,20 @@
     const itemSuggestions = $derived.by((): SearchBoxItem[] => {
         const q = suggestQ.trim();
         if (q.length < 2) return [];
-        return matchItems(q, 5).map((item) => ({
+        let matched = matchItems(q, 5);
+        // Multi-word queries like "laptop kraków" won't match an item as a
+        // whole — retry per token so the item part still surfaces.
+        if (matched.length === 0) {
+            const tokens = queryTokens(q).filter((t) => t.length >= 3);
+            if (tokens.length >= 2) {
+                const seen = new Set<string>();
+                matched = tokens
+                    .flatMap((t) => matchItems(t, 3))
+                    .filter((it) => !seen.has(it.id) && !!seen.add(it.id))
+                    .slice(0, 4);
+            }
+        }
+        return matched.map((item) => ({
             key: `item:${item.id}`,
             icon: "item" as const,
             text: item.name,
@@ -220,7 +237,46 @@
         }));
     });
 
+    // "laptop kraków" → one suggestion that applies both: the item's
+    // categories AND the city (yoga's city+style combo, recycled).
+    const comboSuggestion = $derived.by((): SearchBoxItem | null => {
+        const q = suggestQ.trim();
+        if (q.length < 3) return null;
+        const tokens = queryTokens(q);
+        if (tokens.length < 2) return null;
+        for (let i = 0; i < tokens.length; i++) {
+            if (tokens[i].length < 3) continue;
+            let best: { city: string; score: number; count: number } | null =
+                null;
+            for (const c of cityAggregates) {
+                const s = cityTokenScore(normalize(c.city), tokens[i]);
+                if (
+                    s > 0 &&
+                    (!best ||
+                        s > best.score ||
+                        (s === best.score && c.count > best.count))
+                ) {
+                    best = { city: c.city, score: s, count: c.count };
+                }
+            }
+            if (!best) continue;
+            const rest = tokens.filter((_, j) => j !== i).join(" ");
+            const items = rest.length >= 2 ? matchItems(rest, 1) : [];
+            if (items.length > 0) {
+                return {
+                    key: `itemcity:${items[0].id}:${best.city}`,
+                    icon: "item" as const,
+                    text: `${items[0].name} — ${best.city}`,
+                    meta: `${best.count.toLocaleString("pl-PL")} punktów`,
+                    group: "Rzeczy",
+                };
+            }
+        }
+        return null;
+    });
+
     const suggestions = $derived([
+        ...(comboSuggestion ? [comboSuggestion] : []),
         ...itemSuggestions,
         ...buildSuggestions(points, suggestQ, cityAggregates),
     ]);
@@ -460,6 +516,14 @@
 
     async function handleSelect(item: { key: string; text: string }) {
         heroQuery = "";
+        if (item.key.startsWith("itemcity:")) {
+            const [, itemId, ...cityParts] = item.key.split(":");
+            const it = ITEMS_BY_ID[itemId];
+            query = "";
+            if (it) pickItem(it);
+            gotoCity(cityParts.join(":"));
+            return;
+        }
         if (item.key.startsWith("item:")) {
             const id = item.key.slice("item:".length);
             const it = ITEMS_BY_ID[id];
@@ -506,6 +570,19 @@
     /** Enter without an arrow-key selection — resolve like yoga: take the
      *  top suggestion when there is one, otherwise commit the raw text. */
     function handleSubmit(raw: string) {
+        // Address intent beats a bare city match when the query carries
+        // more than the city name ("marszałkowska 1 warszawa" should
+        // geocode the street, not just open Warszawa).
+        const first = suggestions[0];
+        if (first?.key.startsWith("city:") && queryTokens(raw).length >= 2) {
+            const addr = suggestions.find((s) =>
+                s.key.startsWith("address:"),
+            );
+            if (addr) {
+                void handleSelect(addr);
+                return;
+            }
+        }
         if (suggestions.length > 0) {
             void handleSelect(suggestions[0]);
             return;
@@ -628,16 +705,20 @@
         <div class="chip-section">
             <div class="chip-scroll">
                 {#each topCities as c (c.city)}
-                    <button
-                        type="button"
+                    <!-- Real links (yoga pattern): crawlable path into the
+                         city directory pages; cities without a page fall
+                         back to the map filter. -->
+                    <a
                         class="chip-pill chip-pill--subtle"
-                        onclick={() => gotoCity(c.city)}
+                        href={c.count >= MIN_CITY_PAGE_COUNT
+                            ? `/miasto/${citySlug(c.city)}`
+                            : `/?q=${encodeURIComponent(c.city)}`}
                     >
                         <span class="chip-name">{c.city}</span>
                         <span class="chip-count"
                             >{c.count.toLocaleString("pl-PL")}</span
                         >
-                    </button>
+                    </a>
                 {/each}
             </div>
         </div>
@@ -795,6 +876,7 @@
                             class="results-head-line"
                             id="results-top"
                             tabindex="-1"
+                            aria-live="polite"
                         >
                             <strong
                                 >{sortedFiltered.length.toLocaleString(
@@ -951,7 +1033,7 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.18em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
     }
     .hero-title {
@@ -993,7 +1075,7 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
     }
     /* Mobile: horizontal scroll; desktop: centered wrap (yoga pattern). */
@@ -1029,7 +1111,11 @@
         border: 1px solid var(--kompi-border);
         border-radius: 24px;
         cursor: pointer;
+        text-decoration: none;
         transition: all 0.2s ease;
+    }
+    .chip-pill:hover {
+        text-decoration: none;
     }
     .chip-pill:hover {
         border-color: var(--chip-color, var(--kompi-accent));
@@ -1051,7 +1137,7 @@
     }
     .chip-count {
         font-size: 11px;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-variant-numeric: tabular-nums;
     }
     .chip-pill--subtle {
@@ -1086,6 +1172,29 @@
     @media (max-height: 700px) {
         .landing {
             padding-top: 5vh;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .landing {
+            padding-top: 6vh;
+        }
+        .sub {
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        .hero-search {
+            margin-bottom: 36px;
+        }
+        /* Chip rows keep a comfortable thumb size on touch. */
+        .chip-pill {
+            padding: 10px 16px;
+        }
+        .chip-pill--subtle {
+            padding: 8px 14px;
+        }
+        .edu-line {
+            margin-top: 40px;
         }
     }
 
@@ -1209,7 +1318,7 @@
         white-space: nowrap;
     }
     .new-search:hover {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
     }
 
     /* SearchBox carries its own white capsule — the island is just a
@@ -1311,7 +1420,7 @@
         font-weight: 500;
     }
     .results-q {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1364,7 +1473,7 @@
         border-radius: 10px;
         border: 1px solid var(--kompi-accent-muted);
         background: var(--kompi-accent-subtle);
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-weight: 700;
         cursor: pointer;
     }
@@ -1428,14 +1537,14 @@
     }
     .locate-btn:hover {
         background: var(--kompi-accent-subtle);
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
     }
     .locate-btn:active {
         transform: scale(0.95);
     }
     .locate-btn:disabled {
         cursor: default;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         opacity: 0.5;
     }
     .locate-spin {
@@ -1561,6 +1670,15 @@
             order: 1;
             min-height: 0;
             flex: 1;
+        }
+        /* On a phone the search box is the primary control — put it above
+           the brand island and the take-back chips. */
+        .search-island {
+            order: -1;
+        }
+        .locate-btn {
+            width: 44px;
+            height: 44px;
         }
         /* Results become a bottom sheet: map stays visible above. */
         .results-island {

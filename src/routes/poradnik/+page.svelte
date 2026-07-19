@@ -13,6 +13,7 @@
 </svelte:head>
 
 <div class="wrap">
+    <p class="kicker">Katalog kompi.pl · recykling</p>
     <h1>Poradnik recyklingu</h1>
     <p class="lead">
         Krótkie, praktyczne zasady: co można oddać, jak to przygotować i co
@@ -38,9 +39,18 @@
         margin: 0 auto;
         padding: 40px 20px 64px;
     }
+    .kicker {
+        margin: 0 0 14px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--kompi-accent-text);
+        font-weight: 600;
+    }
     h1 {
-        font-size: clamp(26px, 4vw, 36px);
+        font-size: clamp(28px, 4.5vw, 40px);
         margin: 0 0 8px;
+        letter-spacing: -0.025em;
     }
     .lead {
         color: var(--kompi-text-3);
@@ -70,6 +80,7 @@
     .grid a:hover {
         border-color: var(--g-color);
         transform: translateY(-2px);
+        box-shadow: var(--kompi-shadow-md);
     }
     .grid h2 {
         font-size: 17px;

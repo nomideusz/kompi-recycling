@@ -1,3 +1,4 @@
+import { polishLocationStems } from '@nomideusz/svelte-search/locales/pl';
 import type { SearchBoxItem } from './components/SearchBox.svelte';
 import { haversineKm, looksLikeAddress, type Anchor } from './distance';
 import type { CategoryId, RecyclingPoint, TakebackType } from './types';
@@ -24,6 +25,46 @@ export function normalize(input: string): string {
 		.toLowerCase()
 		.replace(WHITESPACE_RE, ' ')
 		.trim();
+}
+
+// Tokens that carry no search intent on a recycling directory — Polish
+// prepositions plus site-generic words ("gdzie oddać baterie w krakowie"
+// should match on "baterie" + "krakowie" only). Mirrors the yoga app's
+// stop-word handling in @nomideusz/svelte-search.
+const STOP_TOKENS = new Set([
+	'w', 'we', 'z', 'ze', 'na', 'do', 'od', 'dla', 'i', 'o', 'u',
+	'przy', 'po', 'pod', 'nad', 'za', 'lub', 'czy', 'jak', 'co', 'to',
+	'gdzie', 'oddac', 'oddam', 'wyrzucic', 'wyrzucac', 'zwrot', 'zwrocic',
+	'utylizacja', 'utylizacj', 'recykling', 'zbiorka', 'zbiorki',
+	'blisko', 'kolo', 'okolica', 'okolice', 'okolicy', 'okolicach', 'poblizu',
+]);
+
+/**
+ * Normalize a query into meaningful tokens: diacritic-folded, lowercased,
+ * stop words stripped. When stripping would remove everything (e.g. the
+ * query is "punkt zbiórki"), fall back to the raw tokens so the search
+ * still has something to match on.
+ */
+export function queryTokens(query: string): string[] {
+	const raw = normalize(query).split(' ').filter(Boolean);
+	const stripped = raw.filter((t) => !STOP_TOKENS.has(t));
+	return stripped.length > 0 ? stripped : raw;
+}
+
+/**
+ * Does a normalized city name match a query token? Tries direct prefix and
+ * substring first, then Polish declension stems so "krakowie"/"gdanska"
+ * match "krakow"/"gdansk". Returns a score for ranking (higher is better,
+ * 0 = no match).
+ */
+export function cityTokenScore(cityNorm: string, token: string): number {
+	if (token.length < 3) return 0;
+	if (cityNorm.startsWith(token)) return 3;
+	if (cityNorm.includes(token)) return 2;
+	for (const stem of polishLocationStems(token)) {
+		if (stem !== token && cityNorm.startsWith(stem)) return 1;
+	}
+	return 0;
 }
 
 export type Indices = {
@@ -80,7 +121,11 @@ export function filterPoints(
 	filters: Filters,
 	indices?: Indices,
 ): RecyclingPoint[] {
-	const q = normalize(filters.query);
+	// Token-AND matching (yoga-style): every meaningful token must appear
+	// somewhere in the haystack, so "biedronka kraków" and "kraków
+	// biedronka" both work, and "gdzie oddać baterie" isn't defeated by
+	// its stop words.
+	const tokens = filters.query.trim() ? queryTokens(filters.query) : [];
 	const proximityActive = filters.anchor !== null && filters.radiusKm !== null;
 	const distanceMap = indices?.distanceKm ?? null;
 	const haystackMap = indices?.haystack ?? null;
@@ -94,11 +139,11 @@ export function filterPoints(
 		if (filters.takebackTypes.size > 0) {
 			if (!filters.takebackTypes.has(p.takebackType)) return false;
 		}
-		if (q.length > 0) {
+		if (tokens.length > 0) {
 			const haystack =
 				haystackMap?.get(p.slug) ??
 				normalize(`${p.name} ${p.operator} ${p.city} ${p.address} ${p.postalCode}`);
-			if (!haystack.includes(q)) return false;
+			if (!tokens.every((t) => haystack.includes(t))) return false;
 		}
 		if (proximityActive) {
 			const d =
@@ -149,6 +194,7 @@ export function buildSuggestions(
 ): SearchBoxItem[] {
 	const q = normalize(query);
 	if (q.length < 2) return [];
+	const tokens = queryTokens(query);
 
 	const operators = new Map<string, number>();
 	const postals = new Map<string, { city: string; count: number }>();
@@ -168,18 +214,30 @@ export function buildSuggestions(
 
 	// City matches come from the precomputed aggregates so the user can find
 	// any Polish city even when its points haven't been fetched into the
-	// loaded subset yet.
-	const cityMatches: Array<{ city: CityAggregate; count: number }> = [];
+	// loaded subset yet. Matching is per-token and declension-aware
+	// ("krakowie", "laptop kraków" → Kraków); prefix beats substring beats
+	// stem match, then larger cities first.
+	const cityMatches: Array<{ city: CityAggregate; count: number; score: number }> = [];
 	for (const c of cityAggregates) {
-		if (normMaybe(c.city).includes(q)) {
-			cityMatches.push({ city: c, count: c.count });
+		const cityNorm = normMaybe(c.city);
+		let score = cityNorm.includes(q) ? 4 : 0;
+		for (const t of tokens) {
+			score = Math.max(score, cityTokenScore(cityNorm, t));
+		}
+		if (score > 0) {
+			cityMatches.push({ city: c, count: c.count, score });
 		}
 	}
-	cityMatches.sort((a, b) => b.count - a.count);
+	cityMatches.sort((a, b) => b.score - a.score || b.count - a.count);
 
 	for (const p of points) {
-		if (p.operator && normMaybe(p.operator).includes(q)) {
-			operators.set(p.operator, (operators.get(p.operator) ?? 0) + 1);
+		if (p.operator) {
+			const opNorm = normMaybe(p.operator);
+			// Whole query as substring, or every token present — so both
+			// "mpo warszawa" and partial typing "biedr" match.
+			if (opNorm.includes(q) || tokens.every((t) => opNorm.includes(t))) {
+				operators.set(p.operator, (operators.get(p.operator) ?? 0) + 1);
+			}
 		}
 		if (hasDigit) {
 			const postalDigits = (p.postalCode || '').replace(/[-\s]/g, '');
@@ -194,6 +252,22 @@ export function buildSuggestions(
 	}
 
 	const items: SearchBoxItem[] = [];
+
+	// Full postal code → offer proximity search around it (geocoded via the
+	// existing address path, which sets an anchor + radius). Ranked first:
+	// a full code is an unambiguous "near me" intent, like yoga's postal
+	// resolver.
+	const postalFull = query.trim().match(/^(\d{2})\s*-?\s*(\d{3})$/);
+	if (postalFull) {
+		const code = `${postalFull[1]}-${postalFull[2]}`;
+		items.push({
+			key: `address:${code}`,
+			icon: 'postal',
+			text: code,
+			meta: 'Pokaż punkty w pobliżu',
+			group: 'Kod pocztowy',
+		});
+	}
 
 	for (const { city, count } of cityMatches.slice(0, perGroupLimit)) {
 		items.push({
@@ -227,7 +301,11 @@ export function buildSuggestions(
 		});
 	}
 
-	if (looksLikeAddress(query)) {
+	// Generic geocode offer — but not for a partial postal code ("30-0"):
+	// geocoding an incomplete code returns arbitrary places, and the full-code
+	// entry above already covers the completed form.
+	const partialPostal = /^\d{2}\s*-?\s*\d{0,2}$/.test(query.trim());
+	if (!postalFull && !partialPostal && looksLikeAddress(query)) {
 		items.push({
 			key: `address:${query}`,
 			icon: 'pin',

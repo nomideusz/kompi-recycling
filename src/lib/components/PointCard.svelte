@@ -194,7 +194,7 @@
         transition: color 0.2s ease;
     }
     h3 a:hover {
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         text-decoration: none;
     }
     .operator {
@@ -270,7 +270,7 @@
     .dist {
         font-size: 12px;
         font-weight: 700;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-variant-numeric: tabular-nums;
         flex-shrink: 0;
         white-space: nowrap;
@@ -283,7 +283,7 @@
         padding: 6px 12px;
         font-size: 12px;
         font-weight: 700;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         background: var(--kompi-accent-subtle);
         border: 1px solid var(--kompi-accent-muted);
         border-radius: 8px;

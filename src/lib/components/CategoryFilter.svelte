@@ -102,4 +102,11 @@
   .label {
     line-height: 1;
   }
+
+  @media (max-width: 720px) {
+    /* Comfortable thumb targets on touch. */
+    .chip {
+      padding: 10px 16px;
+    }
+  }
 </style>

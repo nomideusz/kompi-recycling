@@ -45,7 +45,7 @@
     margin: 0 0 6px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
   .txt {
     margin: 0 0 6px;
@@ -62,6 +62,6 @@
   .more {
     font-size: 13px;
     font-weight: 700;
-    color: var(--kompi-accent);
+    color: var(--kompi-accent-text);
   }
 </style>

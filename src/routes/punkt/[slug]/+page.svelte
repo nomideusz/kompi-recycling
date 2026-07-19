@@ -67,7 +67,7 @@
                     "@type": "ListItem",
                     position: 2,
                     name: p.city,
-                    item: `https://recycling.kompi.pl/?q=${encodeURIComponent(p.city)}`,
+                    item: `https://recycling.kompi.pl${data.cityHref}`,
                 },
                 {
                     "@type": "ListItem",
@@ -106,7 +106,7 @@
         <nav class="crumbs" aria-label="Ścieżka nawigacji">
             <a href="/">Mapa</a>
             <span aria-hidden="true">›</span>
-            <span>{p.city}</span>
+            <a href={data.cityHref}>{p.city}</a>
             <span aria-hidden="true">›</span>
             <span aria-current="page">{p.name}</span>
         </nav>
@@ -414,7 +414,7 @@
     }
     h1 {
         font-size: clamp(28px, 4vw, var(--kompi-text-3xl));
-        font-weight: 700;
+        font-weight: 400;
         letter-spacing: -0.025em;
         margin: 0 0 var(--kompi-space-3);
         line-height: 1.15;
@@ -462,7 +462,6 @@
         height: 8px;
         border-radius: 50%;
         background: var(--tb-color);
-        box-shadow: 0 0 6px var(--tb-color);
     }
 
     .actions {
@@ -565,8 +564,8 @@
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--kompi-text-3);
+        letter-spacing: 0.1em;
+        color: var(--kompi-accent-text);
         margin: 0 0 10px;
     }
 
@@ -705,7 +704,7 @@
         align-self: center;
         font-weight: 700;
         font-size: 13px;
-        color: var(--kompi-accent);
+        color: var(--kompi-accent-text);
         font-variant-numeric: tabular-nums;
     }
 
