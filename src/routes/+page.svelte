@@ -1165,6 +1165,29 @@
         }
     }
 
+    @media (max-width: 720px) {
+        .landing {
+            padding-top: 6vh;
+        }
+        .sub {
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        .hero-search {
+            margin-bottom: 36px;
+        }
+        /* Chip rows keep a comfortable thumb size on touch. */
+        .chip-pill {
+            padding: 10px 16px;
+        }
+        .chip-pill--subtle {
+            padding: 8px 14px;
+        }
+        .edu-line {
+            margin-top: 40px;
+        }
+    }
+
     /* ══ Results — light islands over the map ══ */
     .map-app {
         position: fixed;
@@ -1637,6 +1660,15 @@
             order: 1;
             min-height: 0;
             flex: 1;
+        }
+        /* On a phone the search box is the primary control — put it above
+           the brand island and the take-back chips. */
+        .search-island {
+            order: -1;
+        }
+        .locate-btn {
+            width: 44px;
+            height: 44px;
         }
         /* Results become a bottom sheet: map stays visible above. */
         .results-island {

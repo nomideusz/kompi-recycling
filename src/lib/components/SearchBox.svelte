@@ -356,5 +356,13 @@
     .sb-dropdown {
       border-radius: 0 0 18px 18px;
     }
+    /* Comfortable thumb targets on touch. */
+    .sb-clear {
+      width: 36px;
+      height: 36px;
+    }
+    .sb-item {
+      padding: 12px 20px;
+    }
   }
 </style>

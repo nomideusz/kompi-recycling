@@ -191,5 +191,10 @@
     .pg-ctrl {
       justify-content: center;
     }
+    /* Comfortable thumb targets on touch. */
+    .pg-btn {
+      min-width: 38px;
+      height: 38px;
+    }
   }
 </style>
