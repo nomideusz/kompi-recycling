@@ -6,6 +6,7 @@
 </script>
 
 <header class="site-header">
+  <div class="topline" aria-hidden="true"></div>
   <div class="inner">
     <a class="brand" href="/">
       <img src={KompiLogo} alt="Kompi" width="100" height="30" />
@@ -29,6 +30,17 @@
     position: sticky;
     top: 0;
     z-index: 20;
+  }
+  /* Yoga's .sf-topline, in kompi colors: a quiet gradient thread through
+     the accent and two category hues. */
+  .topline {
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      var(--kompi-accent),
+      var(--kompi-cat-weee),
+      var(--kompi-cat-bulky)
+    );
   }
   .inner {
     max-width: 1100px;

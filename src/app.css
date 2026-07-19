@@ -216,6 +216,28 @@ button {
     box-shadow: none;
 }
 
+/* ── View transitions — soft cross-fade between pages ── */
+::view-transition-old(root) {
+    animation: 0.25s ease both kompi-vt-out;
+}
+::view-transition-new(root) {
+    animation: 0.25s ease both kompi-vt-in;
+}
+@keyframes kompi-vt-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@keyframes kompi-vt-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+    }
+}
+
 /* ── Accessibility ──────────────────── */
 .sr-only {
     position: absolute;
