@@ -12,7 +12,11 @@ import type { RecyclingPoint } from '$lib/types';
 // little slack. Capped subset goes down with the SSR HTML so the map shows
 // pins immediately; the client fetches more as the user pans/zooms.
 const POLAND_BBOX = { north: 55.5, south: 49.0, east: 24.5, west: 14.0 };
-const INITIAL_LIMIT = 1000;
+// Since the search-first landing redesign the map is never visible on first
+// paint (it mounts on interaction, and the country view draws aggregate
+// circles, not pins), so the embedded subset only seeds the store. 250
+// keeps the prerendered HTML ~4x lighter than the previous 1000.
+const INITIAL_LIMIT = 250;
 // Drop singleton OSM hamlets from the suggestion set — at <2 points a city
 // is a long-tail noise entry the user is unlikely to search for. Cuts the
 // city aggregate list from ~3.8k down to roughly 1.5k for a 30k dataset.
