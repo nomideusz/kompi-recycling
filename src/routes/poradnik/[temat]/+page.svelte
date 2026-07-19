@@ -93,32 +93,52 @@
         margin-bottom: 20px;
     }
     h1 {
-        font-size: clamp(26px, 4vw, 36px);
+        font-size: clamp(28px, 4.5vw, 40px);
         margin: 0 0 12px;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.025em;
+        line-height: 1.12;
     }
     .intro {
         font-size: 16px;
-        line-height: 1.65;
+        line-height: 1.7;
         color: var(--kompi-text-2);
-        margin: 0 0 20px;
+        margin: 0 0 24px;
+        max-width: 620px;
     }
     .finder-cta {
         display: inline-block;
-        padding: 12px 20px;
+        padding: 12px 22px;
         background: var(--kompi-accent);
         color: #fff;
-        font-weight: 700;
+        font-weight: 600;
         border-radius: 12px;
         margin-bottom: 32px;
+        box-shadow:
+            0 1px 2px rgba(234, 106, 18, 0.2),
+            0 4px 12px rgba(234, 106, 18, 0.15);
+        transition:
+            background var(--kompi-dur-fast) var(--kompi-ease),
+            transform var(--kompi-dur-fast) var(--kompi-ease),
+            box-shadow var(--kompi-dur-fast) var(--kompi-ease);
     }
     .finder-cta:hover {
         background: var(--kompi-accent-hover);
         text-decoration: none;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow:
+            0 2px 4px rgba(234, 106, 18, 0.2),
+            0 8px 20px rgba(234, 106, 18, 0.25);
     }
+    /* Uppercase accent section labels — same editorial system as the
+       punkt detail page. */
     h2 {
-        font-size: 18px;
-        margin: 28px 0 10px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--kompi-accent);
+        margin: 32px 0 10px;
     }
     .cols {
         display: grid;
@@ -132,7 +152,7 @@
         line-height: 1.7;
         font-size: 14px;
     }
-    .ok li::marker { content: '✔ '; color: var(--kompi-accent); }
+    .ok li::marker { content: '✔ '; color: var(--kompi-success); }
     .nope li::marker { content: '✘ '; color: var(--kompi-text-4); }
     .prep li { margin-bottom: 4px; }
     section > p {
@@ -159,6 +179,10 @@
         font-weight: 600;
         cursor: pointer;
         font-size: 14px;
+        transition: color var(--kompi-dur-fast) var(--kompi-ease);
+    }
+    .faq summary:hover {
+        color: var(--kompi-accent);
     }
     .faq p {
         margin: 10px 0 0;
